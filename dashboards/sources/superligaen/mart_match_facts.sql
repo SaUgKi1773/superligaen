@@ -41,9 +41,9 @@ SELECT
     f.goalkeeper_saves                                                       AS saves,
     ROUND(f.expected_goals::DOUBLE, 2)                                       AS xg,
     CASE
-        WHEN MAX(CASE WHEN m.match_round_type = 'Championship' THEN 1 ELSE 0 END) OVER (PARTITION BY f.team_sk, m.season) = 1
+        WHEN MAX(CASE WHEN m.match_round_type = 'Championship Group' THEN 1 ELSE 0 END) OVER (PARTITION BY f.team_sk, m.season) = 1
             THEN 'Championship Group'
-        WHEN MAX(CASE WHEN m.match_round_type = 'Relegation'   THEN 1 ELSE 0 END) OVER (PARTITION BY f.team_sk, m.season) = 1
+        WHEN MAX(CASE WHEN m.match_round_type = 'Relegation Group'   THEN 1 ELSE 0 END) OVER (PARTITION BY f.team_sk, m.season) = 1
             THEN 'Relegation Group'
         ELSE 'Regular Season'
     END                                                                      AS standings_type,

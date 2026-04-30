@@ -3,7 +3,7 @@
         materialized='incremental',
         incremental_strategy='merge',
         unique_key='match_id',
-        merge_update_columns=['season', 'match_round_type', 'match_round_number', 'match_status', 'match_name', 'match_short_name', 'match_result', 'kick_off_time'],
+        merge_update_columns=['season', 'match_round_name', 'match_round_type', 'match_round_number', 'match_status', 'match_name', 'match_short_name', 'match_result', 'kick_off_time'],
         post_hook=[
             "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, NULL::INTEGER, NULL::VARCHAR, 'Unknown Match Round Name', 'Unknown Match Round Type', NULL::INTEGER, 'Unknown Match Status', 'Unknown Match Name', 'Unknown Match Short Name', NULL::VARCHAR, NULL::VARCHAR), (-2, NULL::INTEGER, NULL::VARCHAR, 'Not Applicable Match Round Name', 'Not Applicable Match Round Type', NULL::INTEGER, 'Not Applicable Match Status', 'Not Applicable Match Name', 'Not Applicable Match Short Name', NULL::VARCHAR, NULL::VARCHAR)) t(match_sk, match_id, season, match_round_name, match_round_type, match_round_number, match_status, match_name, match_short_name, match_result, kick_off_time) WHERE t.match_sk NOT IN (SELECT match_sk FROM {{ this }})"
         ]
@@ -27,15 +27,21 @@ src AS (
     SELECT
         f.fixture_id,
         f.season::VARCHAR || '/' || RIGHT((f.season + 1)::VARCHAR, 2)        AS season,
-        f.league_round                                                         AS match_round_name,
         CASE SPLIT_PART(f.league_round, ' - ', 1)
-            WHEN 'Championship Group' THEN 'Championship'
-            WHEN 'Championship Round' THEN 'Championship'
-            WHEN 'Relegation Group'   THEN 'Relegation'
-            WHEN 'Relegation Round'   THEN 'Relegation'
+            WHEN 'Championship Group' THEN 'Championship Group'
+            WHEN 'Championship Round' THEN 'Championship Group'
+            WHEN 'Relegation Group'   THEN 'Relegation Group'
+            WHEN 'Relegation Round'   THEN 'Relegation Group'
+            ELSE SPLIT_PART(f.league_round, ' - ', 1)
+        END || ' - ' || COALESCE(tr.round_number, TRY_CAST(SPLIT_PART(f.league_round, ' - ', 2) AS INTEGER))  AS match_round_name,
+        CASE SPLIT_PART(f.league_round, ' - ', 1)
+            WHEN 'Championship Group' THEN 'Championship Group'
+            WHEN 'Championship Round' THEN 'Championship Group'
+            WHEN 'Relegation Group'   THEN 'Relegation Group'
+            WHEN 'Relegation Round'   THEN 'Relegation Group'
             ELSE SPLIT_PART(f.league_round, ' - ', 1)
         END                                                                   AS match_round_type,
-        tr.round_number                                                       AS match_round_number,
+        COALESCE(tr.round_number, TRY_CAST(SPLIT_PART(f.league_round, ' - ', 2) AS INTEGER)) AS match_round_number,
         f.status_long                                                         AS match_status,
         f.home_team_name || ' - ' || f.away_team_name                        AS match_name,
         COALESCE(ht.team_code, f.home_team_name) || ' - ' || COALESCE(awt.team_code, f.away_team_name) AS match_short_name,
