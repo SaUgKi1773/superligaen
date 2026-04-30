@@ -6,7 +6,7 @@
     "build:strict": "evidence build:strict",
     "dev": "evidence dev --open /",
     "test": "evidence build",
-    "sources": "bash scripts/sources.sh",
+    "sources": "evidence sources",
     "sources:strict": "evidence sources --strict",
     "preview": "evidence preview"
   },
