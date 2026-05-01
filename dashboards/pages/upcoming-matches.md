@@ -38,7 +38,7 @@ order by match_date asc, kick_off_time asc
 
 ## Match Analysis
 
-<Dropdown data={upcoming} name=match value=match_key label=match_name order="match_round_number desc, match_date asc" />
+<Dropdown data={upcoming} name=match value=match_key label=match_name order="match_date asc, kick_off_time asc" />
 
 ```sql match_info
 select

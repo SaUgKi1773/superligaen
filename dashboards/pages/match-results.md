@@ -98,7 +98,7 @@ order by match_date desc
 ```
 
 {#key match_options[0]?.match_key}
-<Dropdown data={match_options} name=match value=match_key label=match_label defaultValue={match_options[0]?.match_key} />
+<Dropdown data={match_options} name=match value=match_key label=match_label defaultValue={match_options[0]?.match_key} order="match_date desc" />
 {/key}
 
 ```sql mc
