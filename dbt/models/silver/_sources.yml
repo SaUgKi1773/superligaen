@@ -4,22 +4,37 @@ sources:
   - name: bronze
     database: "{{ 'superligaen' if target.name == 'prod' else 'superligaen_dev' }}"
     schema: bronze
+    # Freshness thresholds for nightly ingestion.
+    # warn_after: 25h covers a missed run; error_after: 49h means two missed runs.
+    # Tables with no `freshness` override inherit these defaults.
+    loaded_at_field: ingested_at
+    freshness:
+      warn_after: {count: 25, period: hour}
+      error_after: {count: 49, period: hour}
     tables:
       - name: api_football__fixtures
-      - name: api_football__leagues
-      - name: api_football__venues
       - name: api_football__fixture_statistics
       - name: api_football__fixture_events
       - name: api_football__fixture_lineups
       - name: api_football__fixture_players
-      - name: api_football__fixture_predictions
-      - name: api_football__fixture_odds
       - name: api_football__standings
-      - name: api_football__teams
       - name: api_football__rounds
-      - name: api_football__players
-      - name: api_football__injuries
       - name: api_football__topassists
       - name: api_football__topscorers
       - name: api_football__topredcards
       - name: api_football__topyellowcards
+      # Static / infrequently updated — no freshness check
+      - name: api_football__leagues
+        freshness: null
+      - name: api_football__venues
+        freshness: null
+      - name: api_football__teams
+        freshness: null
+      - name: api_football__players
+        freshness: null
+      - name: api_football__injuries
+        freshness: null
+      - name: api_football__fixture_predictions
+        freshness: null
+      - name: api_football__fixture_odds
+        freshness: null

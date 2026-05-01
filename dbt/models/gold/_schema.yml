@@ -6,10 +6,13 @@ models:
   # The fact table. Relationship tests here are the most powerful DQ check in a
   # star schema: any SK that doesn't resolve means a dimension lookup will return
   # nothing, silently corrupting every aggregation that joins through it.
+  # Row count threshold catches a pipeline that ran but loaded nothing.
   - name: fct_match_results
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [match_sk, team_side_sk]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 400
     columns:
       - name: match_sk
         tests:
