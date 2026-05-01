@@ -75,6 +75,14 @@ A reference for all metrics, abbreviations, and KPIs used across the dashboard.
 
 ---
 
+## Referee Analysis Metrics
+
+<div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+  <div class="p-3"><div class="font-semibold text-sm">Card Severity Index</div><div class="text-sm text-gray-500 mt-0.5">A weighted measure of how many card "points" a referee issues per match. Yellow cards count as 1, red cards as 3, reflecting the greater impact of a dismissal.</div><div class="text-xs text-gray-400 mt-0.5">(Yellow Cards + Red Cards × 3) ÷ Matches Refereed</div></div>
+</div>
+
+---
+
 ## Goalkeeper Metrics
 
 <div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
