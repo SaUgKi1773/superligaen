@@ -1,0 +1,154 @@
+version: 2
+
+models:
+
+  # ─── fixtures ────────────────────────────────────────────────────────────────
+  # Gateway model: every downstream gold model traces back to this.
+  # Completeness + validity tests here protect the entire pipeline.
+  - name: fixtures
+    columns:
+      - name: fixture_id
+        tests:
+          - unique
+          - not_null
+      - name: home_team_id
+        tests:
+          - not_null
+      - name: away_team_id
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: kick_off
+        tests:
+          - not_null
+      - name: status_short
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'FT'    # Full Time
+                - 'AET'   # After Extra Time
+                - 'PEN'   # After Penalties
+                - 'NS'    # Not Started
+                - 'TBD'   # To Be Defined
+                - '1H'    # First Half
+                - 'HT'    # Half Time
+                - '2H'    # Second Half
+                - 'ET'    # Extra Time
+                - 'BT'    # Break Time
+                - 'P'     # Penalty in Progress
+                - 'LIVE'  # In Play
+                - 'PST'   # Postponed
+                - 'CANC'  # Cancelled
+                - 'ABD'   # Abandoned
+                - 'AWD'   # Technical Loss
+                - 'WO'    # Walk Over
+                - 'SUSP'  # Suspended
+                - 'INT'   # Interrupted
+
+  # ─── fixture_statistics ──────────────────────────────────────────────────────
+  # One row per team per match. Range tests catch JSON parsing failures that
+  # produce nonsensical numbers (e.g. 110% possession).
+  - name: fixture_statistics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [fixture_id, team_id]
+    columns:
+      - name: fixture_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: ball_possession_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "ball_possession_pct IS NOT NULL"
+      - name: passes_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "passes_pct IS NOT NULL"
+      - name: yellow_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: red_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: expected_goals
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "expected_goals IS NOT NULL"
+
+  # ─── standings ───────────────────────────────────────────────────────────────
+  # Consistency tests live here. The played = wins + draws + losses invariant
+  # can't be expressed as a generic test — it needs a singular SQL test.
+  - name: standings
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, team_id, standing_group]
+    columns:
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: points
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: played
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: wins
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "wins IS NOT NULL"
+      - name: draws
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "draws IS NOT NULL"
+      - name: losses
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "losses IS NOT NULL"
+
+  # ─── teams ───────────────────────────────────────────────────────────────────
+  - name: teams
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, team_id]
+    columns:
+      - name: team_id
+        tests:
+          - not_null
+      - name: team_name
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
