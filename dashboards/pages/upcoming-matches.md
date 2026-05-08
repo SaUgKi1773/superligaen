@@ -67,6 +67,17 @@ where match_key = '${inputs.match.value}'
 limit 1
 ```
 
+```sql h2h_seasons
+select distinct season
+from superligaen.mart_match_facts
+where result in ('Win', 'Draw', 'Loss')
+  and (
+      match_name = split_part('${inputs.match.value}', '|||', 1) || ' - ' || split_part('${inputs.match.value}', '|||', 2)
+   or match_name = split_part('${inputs.match.value}', '|||', 2) || ' - ' || split_part('${inputs.match.value}', '|||', 1)
+  )
+order by season desc
+```
+
 ```sql h2h
 select
     season,
@@ -79,6 +90,7 @@ select
     round(sum(xg), 2)                   as total_xg
 from superligaen.mart_match_facts
 where result in ('Win', 'Draw', 'Loss')
+  and season in ${inputs.h2h_season.value}
   and (
       match_name = split_part('${inputs.match.value}', '|||', 1) || ' - ' || split_part('${inputs.match.value}', '|||', 2)
    or match_name = split_part('${inputs.match.value}', '|||', 2) || ' - ' || split_part('${inputs.match.value}', '|||', 1)
@@ -97,6 +109,7 @@ select
 from superligaen.mart_match_facts
 where team_side = 'Home'
   and result in ('Win', 'Draw', 'Loss')
+  and season in ${inputs.h2h_season.value}
   and (
       (team_name = split_part('${inputs.match.value}', '|||', 1) and opponent_team_name = split_part('${inputs.match.value}', '|||', 2))
    or (team_name = split_part('${inputs.match.value}', '|||', 2) and opponent_team_name = split_part('${inputs.match.value}', '|||', 1))
@@ -149,6 +162,8 @@ limit 5
 ---
 
 ### Head-to-Head History
+
+<Dropdown data={h2h_seasons} name=h2h_season value=season label=season multiple=true selectAllByDefault=true order="season desc" />
 
 <div class="grid grid-cols-3 gap-4 mb-6">
   <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
