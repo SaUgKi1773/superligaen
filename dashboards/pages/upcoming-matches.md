@@ -4,23 +4,37 @@ hide_toc: true
 title: Upcoming Fixtures
 ---
 
-```sql upcoming
-select
-    max(case when team_side = 'Home' then team_name end) || '|||' ||
-    max(case when team_side = 'Away' then team_name end)              as match_key,
-    match_name,
-    match_round_name                                                   as round,
-    match_round_number,
-    max(case when team_side = 'Home' then team_name end)              as home_team,
-    max(case when team_side = 'Away' then team_name end)              as away_team,
-    strftime(match_date, '%Y-%m-%d')                                  as match_date,
-    kick_off_time,
-    case when stadium_name like '%Unknown%' or stadium_name like '%Applicable%'
-         then 'TBD' else stadium_name end                             as stadium,
-    season
+```sql teams
+select distinct team_name
 from superligaen.mart_match_facts
 where result = 'Pending'
-group by match_name, match_round_name, match_round_number, match_date, kick_off_time, stadium_name, season
+order by team_name asc
+```
+
+<Dropdown data={teams} name=team value=team_name label=team_name order="team_name asc" multiple=true selectAllByDefault=true />
+
+```sql upcoming
+with base as (
+    select
+        max(case when team_side = 'Home' then team_name end) || '|||' ||
+        max(case when team_side = 'Away' then team_name end)              as match_key,
+        match_name,
+        match_round_name                                                   as round,
+        match_round_number,
+        max(case when team_side = 'Home' then team_name end)              as home_team,
+        max(case when team_side = 'Away' then team_name end)              as away_team,
+        strftime(match_date, '%Y-%m-%d')                                  as match_date,
+        kick_off_time,
+        case when stadium_name like '%Unknown%' or stadium_name like '%Applicable%'
+             then 'TBD' else stadium_name end                             as stadium,
+        season
+    from superligaen.mart_match_facts
+    where result = 'Pending'
+    group by match_name, match_round_name, match_round_number, match_date, kick_off_time, stadium_name, season
+)
+select * from base
+where home_team in ${inputs.team.value}
+   or away_team in ${inputs.team.value}
 order by match_date asc, kick_off_time asc
 ```
 
