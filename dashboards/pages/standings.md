@@ -168,9 +168,11 @@ order by
 <DataTable data={relegation} rows=20>
     <Column id=rank title="#"   align=center />
     <Column id=team title="Team" wrap=true   />
+    <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
     <Column id=l    title="L"   align=center />
+    <Column id=gd   title="GD"  align=center />
     <Column id=pts  title="Pts" align=center contentType=colorscale colorPalette={['white','#6366f1']} />
 </DataTable>
 </div>
@@ -199,9 +201,11 @@ order by
 <DataTable data={regular} rows=20>
     <Column id=rank title="#"   align=center />
     <Column id=team title="Team" wrap=true   />
+    <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
     <Column id=l    title="L"   align=center />
+    <Column id=gd   title="GD"  align=center />
     <Column id=pts  title="Pts" align=center contentType=colorscale colorPalette={['white','#6366f1']} />
 </DataTable>
 </div>
