@@ -1,0 +1,213 @@
+version: 2
+
+models:
+
+  # ─── fct_match_results ───────────────────────────────────────────────────────
+  # The fact table. Relationship tests here are the most powerful DQ check in a
+  # star schema: any SK that doesn't resolve means a dimension lookup will return
+  # nothing, silently corrupting every aggregation that joins through it.
+  # Row count threshold catches a pipeline that ran but loaded nothing.
+  - name: fct_match_results
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [match_sk, team_side_sk]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 400
+    columns:
+      - name: match_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_match')
+              field: match_sk
+      - name: date_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_sk
+      - name: time_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_time')
+              field: time_sk
+      - name: team_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_team')
+              field: team_sk
+      - name: opponent_team_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_team')
+              field: team_sk
+      - name: league_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_league')
+              field: league_sk
+      - name: stadium_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stadium')
+              field: stadium_sk
+      - name: referee_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_referee')
+              field: referee_sk
+      - name: team_side_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_team_side')
+              field: team_side_sk
+      - name: match_result_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_match_result')
+              field: match_result_sk
+      - name: points_earned
+        tests:
+          - accepted_values:
+              values: [0, 1, 3]
+              quote: false
+      - name: goals_scored
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "goals_scored IS NOT NULL"
+      - name: goals_conceded
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "goals_conceded IS NOT NULL"
+      - name: ball_possession_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "ball_possession_pct IS NOT NULL"
+      - name: yellow_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "yellow_cards IS NOT NULL"
+      - name: red_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "red_cards IS NOT NULL"
+      - name: expected_goals
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "expected_goals IS NOT NULL"
+
+  # ─── dim_team ────────────────────────────────────────────────────────────────
+  - name: dim_team
+    columns:
+      - name: team_sk
+        tests:
+          - unique
+          - not_null
+      - name: team_name
+        tests:
+          - not_null
+
+  # ─── dim_match ───────────────────────────────────────────────────────────────
+  # match_round_type is an open-ended API value — new round types appear when
+  # Superligaen teams enter European play-offs. No accepted_values constraint.
+  - name: dim_match
+    columns:
+      - name: match_sk
+        tests:
+          - unique
+          - not_null
+      - name: match_id
+        tests:
+          - unique
+      - name: match_round_type
+        tests:
+          - not_null
+
+  # ─── dim_league ──────────────────────────────────────────────────────────────
+  - name: dim_league
+    columns:
+      - name: league_sk
+        tests:
+          - unique
+          - not_null
+      - name: league_name
+        tests:
+          - not_null
+
+  # ─── dim_stadium ─────────────────────────────────────────────────────────────
+  - name: dim_stadium
+    columns:
+      - name: stadium_sk
+        tests:
+          - unique
+          - not_null
+      - name: stadium_name
+        tests:
+          - not_null
+
+  # ─── dim_referee ─────────────────────────────────────────────────────────────
+  - name: dim_referee
+    columns:
+      - name: referee_sk
+        tests:
+          - unique
+          - not_null
+
+  # ─── dim_date ────────────────────────────────────────────────────────────────
+  - name: dim_date
+    columns:
+      - name: date_sk
+        tests:
+          - unique
+          - not_null
+      - name: date
+        tests:
+          - unique
+          - not_null
+
+  # ─── dim_time ────────────────────────────────────────────────────────────────
+  - name: dim_time
+    columns:
+      - name: time_sk
+        tests:
+          - unique
+          - not_null
+
+  # ─── dim_match_result ────────────────────────────────────────────────────────
+  - name: dim_match_result
+    columns:
+      - name: match_result_sk
+        tests:
+          - unique
+          - not_null
+      - name: match_result
+        tests:
+          - unique
+          - not_null
+
+  # ─── dim_team_side ───────────────────────────────────────────────────────────
+  - name: dim_team_side
+    columns:
+      - name: team_side_sk
+        tests:
+          - unique
+          - not_null
+      - name: team_side
+        tests:
+          - unique
+          - not_null

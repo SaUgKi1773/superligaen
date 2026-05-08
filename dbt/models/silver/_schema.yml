@@ -1,0 +1,294 @@
+version: 2
+
+models:
+
+  # ─── fixtures ────────────────────────────────────────────────────────────────
+  # Gateway model: every downstream gold model traces back to this.
+  # Completeness + validity tests here protect the entire pipeline.
+  - name: fixtures
+    columns:
+      - name: fixture_id
+        tests:
+          - unique
+          - not_null
+      - name: home_team_id
+        tests:
+          - not_null
+      - name: away_team_id
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: kick_off
+        tests:
+          - not_null
+      - name: status_short
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'FT'    # Full Time
+                - 'AET'   # After Extra Time
+                - 'PEN'   # After Penalties
+                - 'NS'    # Not Started
+                - 'TBD'   # To Be Defined
+                - '1H'    # First Half
+                - 'HT'    # Half Time
+                - '2H'    # Second Half
+                - 'ET'    # Extra Time
+                - 'BT'    # Break Time
+                - 'P'     # Penalty in Progress
+                - 'LIVE'  # In Play
+                - 'PST'   # Postponed
+                - 'CANC'  # Cancelled
+                - 'ABD'   # Abandoned
+                - 'AWD'   # Technical Loss
+                - 'WO'    # Walk Over
+                - 'SUSP'  # Suspended
+                - 'INT'   # Interrupted
+
+  # ─── fixture_statistics ──────────────────────────────────────────────────────
+  # One row per team per match. Range tests catch JSON parsing failures that
+  # produce nonsensical numbers (e.g. 110% possession).
+  - name: fixture_statistics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [fixture_id, team_id]
+    columns:
+      - name: fixture_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: ball_possession_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "ball_possession_pct IS NOT NULL"
+      - name: passes_pct
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              row_condition: "passes_pct IS NOT NULL"
+      - name: yellow_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: red_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: expected_goals
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "expected_goals IS NOT NULL"
+
+  # ─── standings ───────────────────────────────────────────────────────────────
+  # Consistency tests live here. The played = wins + draws + losses invariant
+  # can't be expressed as a generic test — it needs a singular SQL test.
+  - name: standings
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, team_id, standing_group]
+    columns:
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: points
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: played
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: wins
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "wins IS NOT NULL"
+      - name: draws
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "draws IS NOT NULL"
+      - name: losses
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "losses IS NOT NULL"
+
+  # ─── teams ───────────────────────────────────────────────────────────────────
+  - name: teams
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, team_id]
+    columns:
+      - name: team_id
+        tests:
+          - not_null
+      - name: team_name
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+
+  # ─── fixture_events ──────────────────────────────────────────────────────────
+  # Many rows per fixture (one per event). The accepted_values test here is a
+  # strong guard: all 4 event types are known; a new value means the API changed
+  # and our downstream CASE logic may misclassify it.
+  - name: fixture_events
+    columns:
+      - name: fixture_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: event_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Goal', 'Card', 'subst', 'Var']
+      - name: time_elapsed
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -10  # API uses -5 for pre-match events (tunnel cards, etc.)
+              row_condition: "time_elapsed IS NOT NULL"
+
+  # ─── fixture_lineups ─────────────────────────────────────────────────────────
+  # One row per player per match per team. Unique key includes is_starter because
+  # a player can appear as both starter and substitute (late sub returning).
+  - name: fixture_lineups
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [fixture_id, team_id, player_id, is_starter]
+    columns:
+      - name: fixture_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+      - name: player_id
+        tests:
+          - not_null
+
+  # ─── leagues ─────────────────────────────────────────────────────────────────
+  - name: leagues
+    columns:
+      - name: league_id
+        tests:
+          - unique
+          - not_null
+      - name: league_name
+        tests:
+          - not_null
+
+  # ─── rounds ──────────────────────────────────────────────────────────────────
+  - name: rounds
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, round_name]
+    columns:
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: round_name
+        tests:
+          - not_null
+
+  # ─── top lists (scorers / assists / cards) ───────────────────────────────────
+  # Shared structure: one row per player per season per league.
+  - name: topscorers
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, player_id]
+    columns:
+      - name: player_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+      - name: goals
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "goals IS NOT NULL"
+      - name: appearances
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "appearances IS NOT NULL"
+
+  - name: topassists
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, player_id]
+    columns:
+      - name: player_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+
+  - name: topredcards
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, player_id]
+    columns:
+      - name: player_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null
+
+  - name: topyellowcards
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [season, league_id, player_id]
+    columns:
+      - name: player_id
+        tests:
+          - not_null
+      - name: season
+        tests:
+          - not_null
+      - name: league_id
+        tests:
+          - not_null

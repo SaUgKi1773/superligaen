@@ -160,12 +160,53 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
+  # DQ tests — run after gold, block publish if any test fails
+  # ---------------------------------------------------------------------------
+  dq_tests:
+    name: DQ tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: gold
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: dbt deps
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: dbt deps
+
+      - name: Run DQ tests
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: |
+          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
+          dbt test --target $TARGET
+
+      - name: Check source freshness
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: |
+          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
+          dbt source freshness --target $TARGET
+
+  # ---------------------------------------------------------------------------
   # Dashboard — push to publish_dashboard/vercel to trigger Vercel rebuild
   # ---------------------------------------------------------------------------
   publish:
     name: Publish dashboard (Vercel)
     runs-on: ubuntu-latest
-    needs: gold
+    needs: dq_tests
     permissions:
       contents: write
 
