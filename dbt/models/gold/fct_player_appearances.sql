@@ -69,6 +69,7 @@ WITH src AS (
     FROM {{ ref('fixture_players') }} fp
     JOIN {{ ref('fixtures') }} f ON f.fixture_id = fp.fixture_id
     WHERE fp.minutes_played > 0
+      AND fp.player_id > 0
 ),
 joined AS (
     SELECT

@@ -53,3 +53,4 @@ SELECT
     src.player_team_name
 FROM latest src
 WHERE src.player_id IS NOT NULL
+  AND src.player_id > 0
