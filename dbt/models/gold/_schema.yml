@@ -323,11 +323,11 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 1
               max_value: 120
-      - name: goals
+      - name: goals_scored
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
-              row_condition: "goals IS NOT NULL"
+              row_condition: "goals_scored IS NOT NULL"
       - name: assists
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
