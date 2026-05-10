@@ -1,0 +1,58 @@
+name: DQ tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_db:
+        description: "Target MotherDuck database (superligaen or superligaen_dev). Default: superligaen."
+        required: false
+        default: ""
+      select:
+        description: "dbt node selector to limit which tests run (e.g. 'fct_player_appearances'). Leave empty to run all tests."
+        required: false
+        default: ""
+
+jobs:
+  dq_tests:
+    name: DQ tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: dbt deps
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: dbt deps
+
+      - name: Run DQ tests
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: |
+          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
+          SELECT="${{ github.event.inputs.select }}"
+          if [ -n "$SELECT" ]; then
+            dbt test --target $TARGET --select "$SELECT"
+          else
+            dbt test --target $TARGET
+          fi
+
+      - name: Check source freshness
+        working-directory: dbt
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+        run: |
+          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
+          dbt source freshness --target $TARGET
