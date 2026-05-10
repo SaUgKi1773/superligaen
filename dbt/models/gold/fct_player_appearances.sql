@@ -44,7 +44,9 @@ WITH src AS (
         COALESCE(fp.shots_on,           0)                                        AS shots_on_goal,
         COALESCE(fp.passes_total,       0)                                        AS total_passes,
         COALESCE(fp.passes_key,         0)                                        AS passes_key,
-        ROUND(fp.passes_total * TRY_CAST(fp.passes_accuracy AS DECIMAL) / 100)::INTEGER AS passes_accurate,
+        CASE WHEN COALESCE(fp.passes_total, 0) = 0 THEN 0
+             ELSE ROUND(fp.passes_total * TRY_CAST(fp.passes_accuracy AS DECIMAL) / 100)::INTEGER
+        END                                                                        AS passes_accurate,
         COALESCE(fp.tackles_total,      0)                                        AS tackles_total,
         COALESCE(fp.tackles_blocks,     0)                                        AS tackles_blocks,
         COALESCE(fp.interceptions,      0)                                        AS interceptions,
