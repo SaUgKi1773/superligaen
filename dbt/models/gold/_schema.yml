@@ -211,3 +211,101 @@ models:
         tests:
           - unique
           - not_null
+
+  # ─── dim_appearance_type ─────────────────────────────────────────────────────
+  - name: dim_appearance_type
+    columns:
+      - name: appearance_type_sk
+        tests:
+          - unique
+          - not_null
+      - name: appearance_type
+        tests:
+          - unique
+          - not_null
+
+  # ─── dim_player ──────────────────────────────────────────────────────────────
+  - name: dim_player
+    columns:
+      - name: player_sk
+        tests:
+          - unique
+          - not_null
+      - name: player_id
+        tests:
+          - unique
+      - name: player_name
+        tests:
+          - not_null
+
+  # ─── fct_player_appearances ──────────────────────────────────────────────────
+  - name: fct_player_appearances
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [fixture_id, player_id, team_id]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 2000
+    columns:
+      - name: date_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_sk
+      - name: match_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_match')
+              field: match_sk
+      - name: player_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_player')
+              field: player_sk
+      - name: team_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_team')
+              field: team_sk
+      - name: appearance_type_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_appearance_type')
+              field: appearance_type_sk
+      - name: minutes_played
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 120
+      - name: goals
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "goals IS NOT NULL"
+      - name: assists
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "assists IS NOT NULL"
+      - name: yellow_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 2
+              row_condition: "yellow_cards IS NOT NULL"
+      - name: red_cards
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1
+              row_condition: "red_cards IS NOT NULL"
+      - name: rating
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              row_condition: "rating IS NOT NULL"
