@@ -31,7 +31,11 @@ def load_fixtures(conn, league_id: int, season: int,
     if to_date:
         params["to"] = to_date
 
-    data = api_get(endpoint, params)
+    try:
+        data = api_get(endpoint, params)
+    except Exception as exc:
+        log.warning("Failed %s league %d season %d: %s", FIXTURE_TABLE, league_id, season, exc)
+        return
     fixtures = data["response"]
     log.info("League %d season %d: fetched %d fixtures", league_id, season, len(fixtures))
 
