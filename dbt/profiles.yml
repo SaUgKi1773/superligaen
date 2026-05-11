@@ -1,9 +1,9 @@
 superligaen:
-  target: dev
+  target: local
   outputs:
-    dev:
+    local:
       type: duckdb
-      path: "md:superligaen_dev"
+      path: "../local_dev.duckdb"
       schema: silver
     prod:
       type: duckdb
