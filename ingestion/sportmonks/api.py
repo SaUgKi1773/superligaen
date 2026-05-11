@@ -43,17 +43,17 @@ def api_get(endpoint: str, params: dict | None = None) -> dict:
         resp = _get_session().get(url, params=p, timeout=30)
 
         if resp.status_code == 429:
-            wait = 60 * (attempt + 1)
-            log.warning("Rate limited — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
+            wait = _rate_limit_wait(resp, attempt)
+            log.warning("Rate limited (HTTP 429) — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
             time.sleep(wait)
             continue
 
         resp.raise_for_status()
         data = resp.json()
 
-        if "message" in data and "rate" in str(data.get("message", "")).lower():
-            wait = 60 * (attempt + 1)
-            log.warning("Rate limit in body — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
+        if "rate limit" in str(data.get("message", "")).lower() or data.get("rate_limit", {}).get("remaining", 999) == 0:
+            wait = _rate_limit_wait(resp, attempt)
+            log.warning("Rate limit — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
             time.sleep(wait)
             continue
 
@@ -71,40 +71,38 @@ def api_get(endpoint: str, params: dict | None = None) -> dict:
     raise RuntimeError(f"Max retries ({MAX_RETRIES}) exceeded for {endpoint}")
 
 
+def _rate_limit_wait(resp: requests.Response, attempt: int) -> int:
+    """Return seconds to wait on a rate-limit response.
+
+    Reads resets_in_seconds from the JSON body when available (only present
+    on successful responses, not on rate-limit error bodies). Falls back to
+    a fixed 10-minute wait, which is conservative but avoids stalling a run
+    for the full hour in most cases.
+    """
+    try:
+        resets_in = resp.json().get("rate_limit", {}).get("resets_in_seconds")
+        if resets_in and resets_in > 0:
+            return int(resets_in) + 5  # small buffer
+    except Exception:
+        pass
+    return 600  # 10 min default when reset time is unknown
+
+
 def api_get_all(endpoint: str, params: dict | None = None) -> Iterator[dict]:
-    """Paginate through all pages and yield each response dict."""
+    """Paginate through all pages and yield each response dict.
+
+    Always passes the original params (filters, includes) on every page request
+    so that filters and includes are not silently dropped on pages 2+.
+    """
     p = dict(params or {})
-    url: str | None = f"{API_BASE}/{endpoint}"
+    page = 1
 
-    while url:
-        # After the first page, Sportmonks returns full next_page URLs
-        if url.startswith("http"):
-            # Strip the base and api_token from the next_page URL — api_get re-adds token
-            resp = api_get_full_url(url, params={"api_token": _token()})
-        else:
-            resp = api_get(url, params=p)
-
+    while True:
+        p["page"] = page
+        resp = api_get(endpoint, p)
         yield resp
 
         pagination = resp.get("pagination", {})
-        url = pagination.get("next_page") if pagination.get("has_more") else None
-
-
-def api_get_full_url(url: str, params: dict | None = None) -> dict:
-    """Fetch an absolute URL (used for paginated next_page links)."""
-    p = dict(params or {})
-    p.setdefault("api_token", _token())
-
-    for attempt in range(MAX_RETRIES):
-        resp = _get_session().get(url, params=p, timeout=30)
-
-        if resp.status_code == 429:
-            wait = 60 * (attempt + 1)
-            log.warning("Rate limited — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
-            time.sleep(wait)
-            continue
-
-        resp.raise_for_status()
-        return resp.json()
-
-    raise RuntimeError(f"Max retries ({MAX_RETRIES}) exceeded for {url}")
+        if not pagination.get("has_more"):
+            break
+        page += 1

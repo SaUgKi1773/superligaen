@@ -84,7 +84,6 @@ def ensure_schema(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute(f"""
         CREATE TABLE IF NOT EXISTS bronze.{TBL_SEASONS} (
             season_id   INTEGER PRIMARY KEY,
-            league_id   INTEGER NOT NULL,
             raw_json    JSON NOT NULL,
             ingested_at TIMESTAMP DEFAULT current_timestamp
         )

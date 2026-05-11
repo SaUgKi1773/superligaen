@@ -9,8 +9,8 @@ We ingest Danish Superliga only.
 """
 
 API_BASE    = "https://api.sportmonks.com/v3/football"
-MAX_RETRIES = 5
-FIRST_SEASON_ID = 1273   # 2005/2006 — earliest available season for league 271
+MAX_RETRIES = 7
+FIRST_SEASON_ID = 17328  # 2020/2021 — earlier seasons loaded on demand
 
 # ---------------------------------------------------------------------------
 # League

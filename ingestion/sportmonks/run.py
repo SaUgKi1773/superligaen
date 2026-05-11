@@ -68,12 +68,14 @@ def _run_full(conn, target: str) -> None:
     load_leagues(conn)
     load_seasons(conn, LEAGUE_ID)
 
-    # Step 2: find all season IDs for this league
+    # Step 2: find season IDs from FIRST_SEASON_ID onwards
     rows = conn.execute(
-        "SELECT season_id, raw_json->>'$.name' FROM bronze.sportmonks__seasons ORDER BY season_id"
+        "SELECT season_id, raw_json->>'$.name' FROM bronze.sportmonks__seasons "
+        "WHERE season_id >= ? ORDER BY season_id",
+        [FIRST_SEASON_ID],
     ).fetchall()
     season_ids = [r[0] for r in rows]
-    log.info("Found %d seasons to process", len(season_ids))
+    log.info("Found %d seasons to process (from season_id %d onwards)", len(season_ids), FIRST_SEASON_ID)
 
     # Step 3: static reference data for current season
     current_season_id = conn.execute(
