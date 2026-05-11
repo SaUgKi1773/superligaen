@@ -100,9 +100,17 @@ def api_get_all(endpoint: str, params: dict | None = None) -> Iterator[dict]:
     while True:
         p["page"] = page
         resp = api_get(endpoint, p)
-        yield resp
 
         pagination = resp.get("pagination", {})
+        total_pages = (
+            -(-pagination["count"] // pagination["per_page"])  # ceiling division
+            if pagination.get("count") and pagination.get("per_page")
+            else "?"
+        )
+        log.info("  %s — page %d/%s (%d records)", endpoint, page, total_pages, len(resp.get("data", [])))
+
+        yield resp
+
         if not pagination.get("has_more"):
             break
         page += 1
