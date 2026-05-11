@@ -1,0 +1,18 @@
+[project]
+name = "superligaen-pipeline"
+version = "0.1.0"
+description = "Superligaen data engineering pipeline — Sportmonks → DuckDB/MotherDuck → dbt → Evidence"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "requests>=2.32",
+    "duckdb>=1.2",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "dbt-duckdb>=1.9",
+]
+
+[tool.uv]
+default-groups = ["dev"]

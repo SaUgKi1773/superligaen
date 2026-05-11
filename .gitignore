@@ -13,8 +13,13 @@ dist/
 build/
 *.egg
 .venv/
+.venv311/
 venv/
 env/
+
+# DuckDB local development database
+local_dev.duckdb
+local_dev.duckdb.wal
 
 # dbt
 .dbt/
