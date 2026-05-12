@@ -1,9 +1,12 @@
 """
-Push local DuckDB bronze tables → MotherDuck.
+Push local DuckDB → MotherDuck.
+
+Discovers all schemas and tables dynamically from the local file.
+Nukes the target schemas before uploading.
 
 Usage:
-  python scripts/push_to_prod.py                        # → superligaen (prod)
-  python scripts/push_to_prod.py --db superligaen_dev   # → superligaen_dev
+  python scripts/push_to_prod.py                      # → superligaen (prod)
+  python scripts/push_to_prod.py --db superligaen_test
 """
 
 import argparse
@@ -20,26 +23,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-TABLES = [
-    "sportmonks__types",
-    "sportmonks__league",
-    "sportmonks__seasons",
-    "sportmonks__stages",
-    "sportmonks__rounds",
-    "sportmonks__teams",
-    "sportmonks__venues",
-    "sportmonks__referees",
-    "sportmonks__squads",
-    "sportmonks__fixtures",
-    "sportmonks__h2h",
-    "sportmonks__standings",
-    "sportmonks__topscorers",
-    "sportmonks__stage_topscorers",
-    "sportmonks__stage_statistics",
-    "sportmonks__round_statistics",
-    "sportmonks__transfers",
-    "sportmonks__rivals",
-]
+SKIP_SCHEMAS = {"information_schema", "pg_catalog", "main"}
 
 
 def main() -> None:
@@ -50,20 +34,41 @@ def main() -> None:
     local_path = os.environ.get("DUCKDB_PATH", os.path.join(_PROJECT_ROOT, "superligaen_dev.duckdb"))
     token = os.environ["MOTHERDUCK_TOKEN"]
 
+    # Discover tables from local file
+    log.info("Reading table list from local: %s", local_path)
+    local = duckdb.connect(local_path, read_only=True)
+    tables = local.execute("""
+        SELECT schema_name, table_name
+        FROM duckdb_tables()
+        WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'main')
+        ORDER BY schema_name, table_name
+    """).fetchall()
+    local.close()
+
+    schemas = sorted({schema for schema, _ in tables})
+    log.info("Found %d tables across schemas: %s", len(tables), schemas)
+
+    # Connect to MotherDuck and push
     log.info("Connecting to MotherDuck: %s", args.db)
     conn = duckdb.connect(f"md:{args.db}?motherduck_token={token}")
-    conn.execute("CREATE SCHEMA IF NOT EXISTS bronze")
-
-    log.info("Attaching local DuckDB: %s", local_path)
     conn.execute(f"ATTACH '{local_path}' AS local (READ_ONLY)")
 
-    for table in TABLES:
-        conn.execute(f"CREATE OR REPLACE TABLE bronze.{table} AS SELECT * FROM local.bronze.{table}")
-        count = conn.execute(f"SELECT COUNT(*) FROM bronze.{table}").fetchone()[0]
-        log.info("Pushed bronze.%s → %s: %d rows", table, args.db, count)
+    # Nuke and recreate each schema
+    for schema in schemas:
+        log.info("Nuking schema: %s", schema)
+        conn.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        conn.execute(f"CREATE SCHEMA {schema}")
+
+    # Copy all tables
+    total = 0
+    for schema, table in tables:
+        conn.execute(f"CREATE TABLE {schema}.{table} AS SELECT * FROM local.{schema}.{table}")
+        count = conn.execute(f"SELECT COUNT(*) FROM {schema}.{table}").fetchone()[0]
+        log.info("  %s.%s → %d rows", schema, table, count)
+        total += 1
 
     conn.close()
-    log.info("Push complete → %s", args.db)
+    log.info("Done — pushed %d tables to %s", total, args.db)
 
 
 if __name__ == "__main__":

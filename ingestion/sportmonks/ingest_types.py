@@ -23,6 +23,8 @@ def load_types(conn) -> None:
     records, page = [], 1
     while True:
         r = requests.get(CORE_URL, headers=headers, params={"per_page": 100, "page": page}, timeout=30)
+        if r.status_code == 400:
+            break
         r.raise_for_status()
         data = r.json()
         batch = data.get("data", [])

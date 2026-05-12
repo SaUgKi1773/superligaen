@@ -72,15 +72,15 @@ def run(full_load: bool = False) -> None:
     conn = connect()
     ensure_schema(conn)
 
-    load_types(conn)
-    load_league(conn)
-    seasons = load_seasons(conn)
-    scope = seasons if full_load else [s for s in seasons if s.get("is_current")]
-
     log.info("=== %s ===", "Full load" if full_load else "Incremental load")
 
     if full_load:
         truncate_all(conn)
+
+    load_types(conn)
+    load_league(conn)
+    seasons = load_seasons(conn)
+    scope = seasons if full_load else [s for s in seasons if s.get("is_current")]
 
     # Fixtures: date-chunked (full) or fixed-window (incremental)
     if full_load:

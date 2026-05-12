@@ -6,6 +6,8 @@ Chunks date ranges into 90-day windows to stay under the 100-day API limit.
 import logging
 from datetime import date, timedelta
 
+import requests
+
 from api import get_paginated
 from config import DATE_CHUNK_DAYS, FIXTURE_INCLUDES, LEAGUE_ID
 from db import upsert
@@ -21,10 +23,16 @@ def _chunks(start: date, end: date):
 
 
 def _ingest_window(conn, from_date: str, to_date: str) -> int:
-    records = get_paginated(
-        f"/fixtures/between/{from_date}/{to_date}",
-        params={"include": FIXTURE_INCLUDES},
-    )
+    try:
+        records = get_paginated(
+            f"/fixtures/between/{from_date}/{to_date}",
+            params={"include": FIXTURE_INCLUDES},
+        )
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 400:
+            log.info("Fixtures %s → %s: no data (400), skipping", from_date, to_date)
+            return 0
+        raise
     fixtures = [f for f in records if f.get("league_id") == LEAGUE_ID]
     for fixture in fixtures:
         upsert(conn, "sportmonks__fixtures", fixture["id"], fixture, "sportmonks/fixtures")

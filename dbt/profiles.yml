@@ -1,0 +1,11 @@
+superligaen:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../superligaen_dev.duckdb') }}"
+      schema: silver
+    prod:
+      type: duckdb
+      path: "md:superligaen?motherduck_token={{ env_var('MOTHERDUCK_TOKEN') }}"
+      schema: silver

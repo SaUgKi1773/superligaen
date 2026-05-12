@@ -1,10 +1,12 @@
 """
-Pull MotherDuck bronze tables → local DuckDB.
-Use this to seed your local database from any MotherDuck database.
+Pull MotherDuck → local DuckDB.
+
+Discovers all schemas and tables dynamically from the MotherDuck source.
+Nukes the local schemas before downloading.
 
 Usage:
-  python scripts/pull_from_prod.py                        # ← superligaen (prod)
-  python scripts/pull_from_prod.py --db superligaen_dev   # ← superligaen_dev
+  python scripts/pull_from_prod.py                # ← superligaen (prod)
+  python scripts/pull_from_prod.py --db test
 """
 
 import argparse
@@ -21,26 +23,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-TABLES = [
-    "sportmonks__types",
-    "sportmonks__league",
-    "sportmonks__seasons",
-    "sportmonks__stages",
-    "sportmonks__rounds",
-    "sportmonks__teams",
-    "sportmonks__venues",
-    "sportmonks__referees",
-    "sportmonks__squads",
-    "sportmonks__fixtures",
-    "sportmonks__h2h",
-    "sportmonks__standings",
-    "sportmonks__topscorers",
-    "sportmonks__stage_topscorers",
-    "sportmonks__stage_statistics",
-    "sportmonks__round_statistics",
-    "sportmonks__transfers",
-    "sportmonks__rivals",
-]
+SKIP_SCHEMAS = {"information_schema", "pg_catalog", "main"}
 
 
 def main() -> None:
@@ -54,17 +37,37 @@ def main() -> None:
     log.info("Connecting to MotherDuck: %s", args.db)
     conn = duckdb.connect(f"md:{args.db}?motherduck_token={token}")
 
+    # Discover tables from MotherDuck source
+    tables = conn.execute(f"""
+        SELECT schema_name, table_name
+        FROM duckdb_tables()
+        WHERE database_name = '{args.db}'
+          AND schema_name NOT IN ('information_schema', 'pg_catalog', 'main')
+        ORDER BY schema_name, table_name
+    """).fetchall()
+
+    schemas = sorted({schema for schema, _ in tables})
+    log.info("Found %d tables across schemas: %s", len(tables), schemas)
+
     log.info("Attaching local DuckDB: %s", local_path)
     conn.execute(f"ATTACH '{local_path}' AS local")
-    conn.execute("CREATE SCHEMA IF NOT EXISTS local.bronze")
 
-    for table in TABLES:
-        conn.execute(f"CREATE OR REPLACE TABLE local.bronze.{table} AS SELECT * FROM bronze.{table}")
-        count = conn.execute(f"SELECT COUNT(*) FROM local.bronze.{table}").fetchone()[0]
-        log.info("Pulled %s.bronze.%s → local: %d rows", args.db, table, count)
+    # Nuke and recreate each local schema
+    for schema in schemas:
+        log.info("Nuking local schema: %s", schema)
+        conn.execute(f"DROP SCHEMA IF EXISTS local.{schema} CASCADE")
+        conn.execute(f"CREATE SCHEMA local.{schema}")
+
+    # Copy all tables
+    total = 0
+    for schema, table in tables:
+        conn.execute(f"CREATE TABLE local.{schema}.{table} AS SELECT * FROM {schema}.{table}")
+        count = conn.execute(f"SELECT COUNT(*) FROM local.{schema}.{table}").fetchone()[0]
+        log.info("  %s.%s → %d rows", schema, table, count)
+        total += 1
 
     conn.close()
-    log.info("Pull complete ← %s", args.db)
+    log.info("Done — pulled %d tables from %s", total, args.db)
 
 
 if __name__ == "__main__":
