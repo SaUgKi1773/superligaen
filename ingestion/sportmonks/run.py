@@ -9,10 +9,11 @@ Run from the ingestion/sportmonks/ directory, or set DUCKDB_PATH explicitly.
 
 Adding a new endpoint
 ---------------------
-1. Create ingest_<name>.py with a load_<name>(conn, seasons) function.
-2. Add the table to db.py BRONZE_TABLES.
-3. Import load_<name> here and append it to SEASON_LOADERS.
-4. Add the table name to scripts/push_to_prod.py and pull_from_prod.py.
+1. Add the table name to db.py BRONZE_TABLES.
+2. Drop one line into the right endpoint list below (SEASON_ENDPOINTS,
+   STAGE_ENDPOINTS, ROUND_ENDPOINTS, TEAM_ENDPOINTS, or TEAM_PAIR_ENDPOINTS).
+3. Add the table name to scripts/push_to_prod.py and pull_from_prod.py.
+No new file needed unless the endpoint has unusual logic.
 """
 
 import argparse
@@ -22,68 +23,76 @@ from db import connect, ensure_schema
 from ingest_types import load_types
 from ingest_league import load_league
 from ingest_seasons import load_seasons
-from ingest_stages import load_stages
-from ingest_rounds import load_rounds
-from ingest_teams import load_teams
-from ingest_venues import load_venues
-from ingest_referees import load_referees
-from ingest_squads import load_squads
 from ingest_fixtures import load_fixtures_full, load_fixtures_incremental
-from ingest_standings import load_standings
-from ingest_topscorers import load_topscorers
-from ingest_stage_statistics import load_stage_statistics
-from ingest_round_statistics import load_round_statistics
-from ingest_transfers import load_transfers
-from ingest_rivals import load_rivals
-from ingest_h2h import load_h2h
+from ingest_squads import load_squads
+from ingest import (
+    load_season_endpoints,
+    load_stage_endpoints,
+    load_round_endpoints,
+    load_team_endpoints,
+    load_team_pair_endpoints,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
-# Called once with no season scope.
-GLOBAL_LOADERS = [
-    load_types,
-    load_league,
+# ── Endpoint registry ────────────────────────────────────────────────────────
+
+SEASON_ENDPOINTS = [
+    {"table": "sportmonks__stages",    "path": "/stages/seasons/{season_id}"},
+    {"table": "sportmonks__rounds",    "path": "/rounds/seasons/{season_id}"},
+    {"table": "sportmonks__teams",     "path": "/teams/seasons/{season_id}"},
+    {"table": "sportmonks__venues",    "path": "/venues/seasons/{season_id}"},
+    {"table": "sportmonks__referees",  "path": "/referees/seasons/{season_id}"},
+    {"table": "sportmonks__standings", "path": "/standings/seasons/{season_id}"},
+    {"table": "sportmonks__topscorers","path": "/topscorers/seasons/{season_id}"},
 ]
 
-# Called with (conn, seasons). Add/remove endpoints here.
-SEASON_LOADERS = [
-    load_stages,
-    load_rounds,
-    load_teams,
-    load_venues,
-    load_referees,
-    load_squads,
-    load_standings,
-    load_topscorers,
-    load_stage_statistics,
-    load_round_statistics,
-    load_transfers,
-    load_rivals,
-    load_h2h,
+STAGE_ENDPOINTS = [
+    {"table": "sportmonks__topscorers",       "path": "/topscorers/stages/{stage_id}"},
+    {"table": "sportmonks__stage_statistics", "path": "/statistics/stages/{stage_id}"},
 ]
 
+ROUND_ENDPOINTS = [
+    {"table": "sportmonks__round_statistics", "path": "/statistics/rounds/{round_id}"},
+]
+
+TEAM_ENDPOINTS = [
+    {"table": "sportmonks__transfers", "path": "/transfers/teams/{team_id}"},
+    {"table": "sportmonks__rivals",    "path": "/rivals/teams/{team_id}"},
+]
+
+TEAM_PAIR_ENDPOINTS = [
+    {"table": "sportmonks__h2h", "path": "/fixtures/head-to-head/{team1_id}/{team2_id}"},
+]
+
+# ── Runner ───────────────────────────────────────────────────────────────────
 
 def run(full_load: bool = False) -> None:
     conn = connect()
     ensure_schema(conn)
 
-    for loader in GLOBAL_LOADERS:
-        loader(conn)
-
+    load_types(conn)
+    load_league(conn)
     seasons = load_seasons(conn)
     scope = seasons if full_load else [s for s in seasons if s.get("is_current")]
 
     log.info("=== %s ===", "Full load" if full_load else "Incremental load")
 
-    # Fixtures are date-chunked (full) or fixed-window (incremental) — handled separately.
+    # Fixtures: date-chunked (full) or fixed-window (incremental)
     if full_load:
         load_fixtures_full(conn, seasons)
     else:
         load_fixtures_incremental(conn)
 
-    for loader in SEASON_LOADERS:
-        loader(conn, scope)
+    # Squads: season × team nested URL — handled separately
+    load_squads(conn, scope)
+
+    load_season_endpoints(conn, scope, SEASON_ENDPOINTS)
+    load_stage_endpoints(conn, scope, STAGE_ENDPOINTS)
+    load_round_endpoints(conn, scope, ROUND_ENDPOINTS)
+    load_team_endpoints(conn, scope, TEAM_ENDPOINTS)
+    load_team_pair_endpoints(conn, scope, TEAM_PAIR_ENDPOINTS)
 
     conn.close()
     log.info("Done")
