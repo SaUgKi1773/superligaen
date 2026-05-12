@@ -49,7 +49,7 @@ SEASON_ENDPOINTS = [
 ]
 
 STAGE_ENDPOINTS = [
-    {"table": "sportmonks__topscorers",       "path": "/topscorers/stages/{stage_id}"},
+    {"table": "sportmonks__stage_topscorers", "path": "/topscorers/stages/{stage_id}"},
     {"table": "sportmonks__stage_statistics", "path": "/statistics/stages/{stage_id}"},
 ]
 

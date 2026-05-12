@@ -29,6 +29,7 @@ BRONZE_TABLES = [
     "sportmonks__h2h",
     "sportmonks__standings",
     "sportmonks__topscorers",
+    "sportmonks__stage_topscorers",
     "sportmonks__stage_statistics",
     "sportmonks__round_statistics",
     "sportmonks__transfers",
