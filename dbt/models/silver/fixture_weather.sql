@@ -1,6 +1,12 @@
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='fixture_id'
+) }}
+
 SELECT
-    (raw_json->'weatherreport'->>'id')::INTEGER                      AS id,
     id                                                                AS fixture_id,
+    (raw_json->'weatherreport'->>'id')::INTEGER                      AS id,
     (raw_json->'weatherreport'->>'venue_id')::INTEGER                AS venue_id,
     (raw_json->'weatherreport'->'temperature'->>'day')::DOUBLE       AS temp_day,
     (raw_json->'weatherreport'->'current'->>'temp')::DOUBLE          AS temp_current,
@@ -11,7 +17,10 @@ SELECT
     (raw_json->'weatherreport'->>'pressure')::INTEGER                AS pressure,
     raw_json->'weatherreport'->>'clouds'                             AS clouds,
     raw_json->'weatherreport'->>'description'                        AS description,
-    raw_json->'weatherreport'->>'metric'                             AS metric
+    raw_json->'weatherreport'->>'metric'                             AS metric,
+    _ingested_at
 FROM {{ source('bronze', 'sportmonks__fixtures') }}
-WHERE raw_json->'weatherreport' IS NOT NULL
-  AND raw_json->'weatherreport' != 'null'::JSON
+WHERE json_extract(raw_json::VARCHAR, '$.weatherreport') IS NOT NULL
+{% if is_incremental() %}
+AND _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+{% endif %}

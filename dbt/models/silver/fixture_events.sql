@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='id'
+) }}
+
 SELECT
     (event->>'id')::INTEGER              AS id,
     f.id                                 AS fixture_id,
@@ -18,7 +24,11 @@ SELECT
     (event->>'on_bench')::BOOLEAN        AS on_bench,
     (event->>'sub_type_id')::INTEGER     AS sub_type_id,
     (event->>'sort_order')::INTEGER      AS sort_order,
-    (event->>'rescinded')::BOOLEAN       AS rescinded
+    (event->>'rescinded')::BOOLEAN       AS rescinded,
+    f._ingested_at
 FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"events": ["JSON"]}').events) AS t(event)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.events')) > 0
+{% if is_incremental() %}
+AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+{% endif %}

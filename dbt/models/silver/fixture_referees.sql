@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='id'
+) }}
+
 SELECT
     (ref->>'id')::INTEGER              AS id,
     f.id                               AS fixture_id,
@@ -8,7 +14,11 @@ SELECT
     ref->'referee'->>'lastname'        AS referee_lastname,
     ref->'referee'->>'name'            AS referee_name,
     ref->'referee'->>'display_name'    AS referee_display_name,
-    ref->'referee'->>'image_path'      AS referee_image_path
+    ref->'referee'->>'image_path'      AS referee_image_path,
+    f._ingested_at
 FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"referees": ["JSON"]}').referees) AS t(ref)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.referees')) > 0
+{% if is_incremental() %}
+AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+{% endif %}

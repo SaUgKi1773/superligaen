@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='id'
+) }}
+
 SELECT
     id,
     (raw_json->>'league_id')::INTEGER        AS league_id,
@@ -16,17 +22,19 @@ SELECT
     (raw_json->>'length')::INTEGER           AS length,
     (raw_json->>'placeholder')::BOOLEAN      AS placeholder,
     (raw_json->>'has_odds')::BOOLEAN         AS has_odds,
-    -- Venue (embedded include)
     raw_json->'venue'->>'name'               AS venue_name,
     raw_json->'venue'->>'city_name'          AS venue_city,
     raw_json->'venue'->>'surface'            AS venue_surface,
     (raw_json->'venue'->>'capacity')::INTEGER AS venue_capacity,
-    -- State / match status (embedded include)
     raw_json->'state'->>'name'               AS state_name,
     raw_json->'state'->>'short_name'         AS state_short_name,
     raw_json->'state'->>'developer_name'     AS state_developer_name,
-    -- Round (embedded include)
     raw_json->'round'->>'name'               AS round_name,
     (raw_json->'round'->>'finished')::BOOLEAN AS round_finished,
-    (raw_json->'round'->>'is_current')::BOOLEAN AS round_is_current
+    (raw_json->'round'->>'is_current')::BOOLEAN AS round_is_current,
+    _fixture_date,
+    _ingested_at
 FROM {{ source('bronze', 'sportmonks__fixtures') }}
+{% if is_incremental() %}
+WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+{% endif %}
