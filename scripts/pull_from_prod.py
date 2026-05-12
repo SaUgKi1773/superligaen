@@ -1,11 +1,13 @@
 """
-Pull MotherDuck prod (superligaen) bronze tables → local DuckDB.
-Use this to seed your local database with current production data.
+Pull MotherDuck bronze tables → local DuckDB.
+Use this to seed your local database from any MotherDuck database.
 
 Usage:
-  python scripts/pull_from_prod.py
+  python scripts/pull_from_prod.py                        # ← superligaen (prod)
+  python scripts/pull_from_prod.py --db superligaen_dev   # ← superligaen_dev
 """
 
+import argparse
 import logging
 import os
 
@@ -42,23 +44,27 @@ TABLES = [
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--db", default="superligaen", help="MotherDuck database name (default: superligaen)")
+    args = parser.parse_args()
+
     local_path = os.environ.get("DUCKDB_PATH", os.path.join(_PROJECT_ROOT, "superligaen_dev.duckdb"))
     token = os.environ["MOTHERDUCK_TOKEN"]
 
-    log.info("Connecting to local DuckDB: %s", local_path)
-    conn = duckdb.connect(local_path)
+    log.info("Connecting to MotherDuck: %s", args.db)
+    conn = duckdb.connect(f"md:{args.db}?motherduck_token={token}")
 
-    log.info("Attaching MotherDuck prod database (read-only)")
-    conn.execute(f"ATTACH 'md:superligaen?motherduck_token={token}' AS prod (READ_ONLY)")
-    conn.execute("CREATE SCHEMA IF NOT EXISTS bronze")
+    log.info("Attaching local DuckDB: %s", local_path)
+    conn.execute(f"ATTACH '{local_path}' AS local")
+    conn.execute("CREATE SCHEMA IF NOT EXISTS local.bronze")
 
     for table in TABLES:
-        conn.execute(f"CREATE OR REPLACE TABLE bronze.{table} AS SELECT * FROM prod.bronze.{table}")
-        count = conn.execute(f"SELECT COUNT(*) FROM bronze.{table}").fetchone()[0]
-        log.info("Pulled prod.bronze.%s → local: %d rows", table, count)
+        conn.execute(f"CREATE OR REPLACE TABLE local.bronze.{table} AS SELECT * FROM bronze.{table}")
+        count = conn.execute(f"SELECT COUNT(*) FROM local.bronze.{table}").fetchone()[0]
+        log.info("Pulled %s.bronze.%s → local: %d rows", args.db, table, count)
 
     conn.close()
-    log.info("Pull complete")
+    log.info("Pull complete ← %s", args.db)
 
 
 if __name__ == "__main__":
