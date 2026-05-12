@@ -21,13 +21,23 @@ log = logging.getLogger(__name__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 TABLES = [
+    "sportmonks__types",
+    "sportmonks__league",
     "sportmonks__seasons",
+    "sportmonks__stages",
+    "sportmonks__rounds",
     "sportmonks__teams",
     "sportmonks__venues",
     "sportmonks__referees",
-    "sportmonks__rounds",
+    "sportmonks__squads",
     "sportmonks__fixtures",
+    "sportmonks__h2h",
     "sportmonks__standings",
+    "sportmonks__topscorers",
+    "sportmonks__stage_statistics",
+    "sportmonks__round_statistics",
+    "sportmonks__transfers",
+    "sportmonks__rivals",
 ]
 
 

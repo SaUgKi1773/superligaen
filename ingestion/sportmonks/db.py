@@ -16,13 +16,23 @@ load_dotenv()
 log = logging.getLogger(__name__)
 
 BRONZE_TABLES = [
+    "sportmonks__types",
+    "sportmonks__league",
     "sportmonks__seasons",
-    "sportmonks__fixtures",
-    "sportmonks__standings",
+    "sportmonks__stages",
+    "sportmonks__rounds",
     "sportmonks__teams",
     "sportmonks__venues",
     "sportmonks__referees",
-    "sportmonks__rounds",
+    "sportmonks__squads",
+    "sportmonks__fixtures",
+    "sportmonks__h2h",
+    "sportmonks__standings",
+    "sportmonks__topscorers",
+    "sportmonks__stage_statistics",
+    "sportmonks__round_statistics",
+    "sportmonks__transfers",
+    "sportmonks__rivals",
 ]
 
 
