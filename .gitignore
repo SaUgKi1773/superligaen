@@ -28,6 +28,10 @@ dashboards/.evidence/
 dashboards/build/
 dashboards/node_modules/
 
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
 # OS
 .DS_Store
 Thumbs.db

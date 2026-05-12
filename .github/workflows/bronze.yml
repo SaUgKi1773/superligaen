@@ -1,0 +1,53 @@
+name: Bronze — Sportmonks Ingestion
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 4 AM UTC nightly
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Load mode"
+        required: true
+        default: "incremental"
+        type: choice
+        options:
+          - incremental
+          - full-load
+
+jobs:
+  ingest:
+    name: Ingest → push to prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # full load across 16 seasons can take a while
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv pip install --system requests python-dotenv duckdb
+
+      - name: Pull from prod (incremental only)
+        if: ${{ github.event.inputs.mode != 'full-load' }}
+        run: python scripts/pull_from_prod.py
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+
+      - name: Run ingestion
+        working-directory: ingestion/sportmonks
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "full-load" ]; then
+            python run.py --full-load
+          else
+            python run.py
+          fi
+        env:
+          SPORTMONKS_API_KEY: ${{ secrets.SPORTMONKS_API_KEY }}
+
+      - name: Push to prod
+        run: python scripts/push_to_prod.py
+        env:
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
