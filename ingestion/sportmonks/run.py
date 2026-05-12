@@ -41,6 +41,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 from db import connect, ensure_schema
 from loaders import (
+    load_core_continents, load_core_countries, load_core_regions, load_core_players,
     load_types, load_league, load_seasons,
     load_stages, load_rounds, load_teams,
     load_squads, load_venues, load_referees,
@@ -61,7 +62,13 @@ log = logging.getLogger(__name__)
 def run_full(conn) -> None:
     log.info("=== FULL LOAD START ===")
 
-    # 1. Global lookup tables
+    # 1. Core API reference tables (continents → countries → regions → players)
+    load_core_continents(conn)
+    load_core_countries(conn)
+    load_core_regions(conn)
+    load_core_players(conn)
+
+    # 2. Football API global lookup tables
     load_types(conn)
     load_league(conn)
     seasons = load_seasons(conn)
@@ -94,6 +101,12 @@ def run_full(conn) -> None:
 
 def run_incremental(conn) -> None:
     log.info("=== INCREMENTAL LOAD START ===")
+
+    # Core reference tables: reload on every run — small and occasionally updated
+    load_core_continents(conn)
+    load_core_countries(conn)
+    load_core_regions(conn)
+    load_core_players(conn)
 
     # Seasons always truncate+reload — a new season may have started
     seasons = load_seasons(conn)

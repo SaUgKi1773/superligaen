@@ -25,6 +25,12 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 log = logging.getLogger(__name__)
 
 GLOBAL_TABLES = [
+    # Core API lookups (static reference data)
+    "sportmonks__core_continents",
+    "sportmonks__core_countries",
+    "sportmonks__core_regions",
+    "sportmonks__core_players",
+    # Football API global tables
     "sportmonks__types",
     "sportmonks__league",
     "sportmonks__seasons",

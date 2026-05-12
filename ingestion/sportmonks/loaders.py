@@ -48,6 +48,33 @@ def _all_team_ids(team_map: dict) -> set:
     return {t["id"] for teams in team_map.values() for t in teams}
 
 
+# ── Core API loaders (reference data, always truncate + reload) ───────────────
+
+def _load_core(conn, path: str, table: str) -> int:
+    delete_global(conn, table)
+    records = get_paginated(path, base=CORE_API_BASE)
+    insert_batch(conn, table, _rows(records))
+    log.info("%s: %d rows", table, len(records))
+    return len(records)
+
+
+def load_core_continents(conn) -> int:
+    return _load_core(conn, "/continents", "sportmonks__core_continents")
+
+
+def load_core_countries(conn) -> int:
+    return _load_core(conn, "/countries", "sportmonks__core_countries")
+
+
+def load_core_regions(conn) -> int:
+    return _load_core(conn, "/regions", "sportmonks__core_regions")
+
+
+def load_core_players(conn) -> int:
+    """All players accessible within the subscription — superset of squad-derived players."""
+    return _load_core(conn, "/players", "sportmonks__core_players")
+
+
 # ── Global loaders ────────────────────────────────────────────────────────────
 
 def load_types(conn) -> int:

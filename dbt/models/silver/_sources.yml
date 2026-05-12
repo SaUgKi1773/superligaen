@@ -22,3 +22,8 @@ sources:
       - name: sportmonks__round_statistics
       - name: sportmonks__transfers
       - name: sportmonks__rivals
+      - name: sportmonks__coaches
+      - name: sportmonks__core_continents
+      - name: sportmonks__core_countries
+      - name: sportmonks__core_regions
+      - name: sportmonks__core_players
