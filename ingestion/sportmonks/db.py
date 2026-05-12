@@ -58,6 +58,12 @@ def ensure_schema(conn: duckdb.DuckDBPyConnection) -> None:
     log.info("Bronze schema verified (%d tables)", len(BRONZE_TABLES))
 
 
+def truncate_all(conn: duckdb.DuckDBPyConnection) -> None:
+    for table in BRONZE_TABLES:
+        conn.execute(f"TRUNCATE bronze.{table}")
+    log.info("Truncated all bronze tables")
+
+
 def upsert(conn: duckdb.DuckDBPyConnection, table: str, record_id: int, payload: dict, source: str) -> None:
     conn.execute(f"DELETE FROM bronze.{table} WHERE id = ?", [record_id])
     conn.execute(

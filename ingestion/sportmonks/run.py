@@ -19,7 +19,7 @@ No new file needed unless the endpoint has unusual logic.
 import argparse
 import logging
 
-from db import connect, ensure_schema
+from db import connect, ensure_schema, truncate_all
 from ingest_types import load_types
 from ingest_league import load_league
 from ingest_seasons import load_seasons
@@ -78,6 +78,9 @@ def run(full_load: bool = False) -> None:
     scope = seasons if full_load else [s for s in seasons if s.get("is_current")]
 
     log.info("=== %s ===", "Full load" if full_load else "Incremental load")
+
+    if full_load:
+        truncate_all(conn)
 
     # Fixtures: date-chunked (full) or fixed-window (incremental)
     if full_load:
