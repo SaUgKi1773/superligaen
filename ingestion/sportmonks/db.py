@@ -109,21 +109,25 @@ def ensure_schema(conn: duckdb.DuckDBPyConnection) -> None:
         )
     """)
 
-    # referee_id PK
+    # (season_id, referee_id) PK — referee roster changes each season
     conn.execute(f"""
         CREATE TABLE IF NOT EXISTS bronze.{TBL_REFEREES} (
-            referee_id  INTEGER PRIMARY KEY,
+            season_id   INTEGER,
+            referee_id  INTEGER,
             raw_json    JSON NOT NULL,
-            ingested_at TIMESTAMP DEFAULT current_timestamp
+            ingested_at TIMESTAMP DEFAULT current_timestamp,
+            PRIMARY KEY (season_id, referee_id)
         )
     """)
 
-    # round_id PK
+    # (season_id, round_id) PK — rounds are season-specific
     conn.execute(f"""
         CREATE TABLE IF NOT EXISTS bronze.{TBL_ROUNDS} (
-            round_id    INTEGER PRIMARY KEY,
+            season_id   INTEGER,
+            round_id    INTEGER,
             raw_json    JSON NOT NULL,
-            ingested_at TIMESTAMP DEFAULT current_timestamp
+            ingested_at TIMESTAMP DEFAULT current_timestamp,
+            PRIMARY KEY (season_id, round_id)
         )
     """)
 

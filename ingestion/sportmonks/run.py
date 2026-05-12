@@ -77,18 +77,13 @@ def _run_full(conn, target: str) -> None:
     season_ids = [r[0] for r in rows]
     log.info("Found %d seasons to process (from season_id %d onwards)", len(season_ids), FIRST_SEASON_ID)
 
-    # Step 3: static reference data for current season
-    current_season_id = conn.execute(
-        "SELECT season_id FROM bronze.sportmonks__seasons WHERE raw_json->>'$.is_current' = 'true' LIMIT 1"
-    ).fetchone()[0]
-    load_teams(conn, current_season_id)
-    load_venues(conn, current_season_id)
-    load_referees(conn, current_season_id)
-    load_rounds(conn, current_season_id)
-
-    # Step 4: season-level + fixtures for all seasons
+    # Step 3: static reference data + season-level data + fixtures for all seasons
     for season_id in season_ids:
         log.info("=== Season %d ===", season_id)
+        load_teams(conn, season_id)
+        load_venues(conn, season_id)
+        load_referees(conn, season_id)
+        load_rounds(conn, season_id)
         load_standings(conn, season_id)
         load_topscorers(conn, season_id)
         fixture_ids = load_fixtures_for_season(conn, season_id)
@@ -96,14 +91,24 @@ def _run_full(conn, target: str) -> None:
 
 
 def _run_incremental(conn, from_date: str | None, to_date: str | None) -> None:
+    from config import LEAGUE_ID
     from db import get_current_season_id
+    from ingest_static import load_leagues, load_seasons, load_teams, load_venues, load_referees, load_rounds
     from ingest_standings import load_standings, load_topscorers
     from ingest_fixtures import load_fixtures_for_date_range, load_fixture_details
 
     current_season_id = get_current_season_id(conn)
     log.info("Incremental load — current season: %d", current_season_id)
 
-    # Always refresh standings + topscorers
+    # Refresh all static tables for current season
+    load_leagues(conn)
+    load_seasons(conn, LEAGUE_ID)
+    load_teams(conn, current_season_id)
+    load_venues(conn, current_season_id)
+    load_referees(conn, current_season_id)
+    load_rounds(conn, current_season_id)
+
+    # Refresh standings + topscorers
     load_standings(conn, current_season_id)
     load_topscorers(conn, current_season_id)
 

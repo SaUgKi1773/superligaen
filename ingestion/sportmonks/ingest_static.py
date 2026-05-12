@@ -65,7 +65,7 @@ def load_referees(conn: duckdb.DuckDBPyConnection, season_id: int) -> None:
     count = 0
     for page in api_get_all(f"referees/seasons/{season_id}"):
         for referee in page.get("data", []):
-            upsert(conn, TBL_REFEREES, ["referee_id"], [referee["id"]], referee)
+            upsert(conn, TBL_REFEREES, ["season_id", "referee_id"], [season_id, referee["id"]], referee)
             count += 1
     log.info("Referees: %d rows", count)
 
@@ -75,6 +75,6 @@ def load_rounds(conn: duckdb.DuckDBPyConnection, season_id: int) -> None:
     count = 0
     for page in api_get_all(f"rounds/seasons/{season_id}"):
         for rnd in page.get("data", []):
-            upsert(conn, TBL_ROUNDS, ["round_id"], [rnd["id"]], rnd)
+            upsert(conn, TBL_ROUNDS, ["season_id", "round_id"], [season_id, rnd["id"]], rnd)
             count += 1
     log.info("Rounds: %d rows", count)
