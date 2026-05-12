@@ -41,29 +41,29 @@ log = logging.getLogger(__name__)
 SEASON_ENDPOINTS = [
     {"table": "sportmonks__stages",    "path": "/stages/seasons/{season_id}"},
     {"table": "sportmonks__rounds",    "path": "/rounds/seasons/{season_id}"},
-    {"table": "sportmonks__teams",     "path": "/teams/seasons/{season_id}"},
+    {"table": "sportmonks__teams",     "path": "/teams/seasons/{season_id}",     "includes": "venue;coaches"},
     {"table": "sportmonks__venues",    "path": "/venues/seasons/{season_id}"},
-    {"table": "sportmonks__referees",  "path": "/referees/seasons/{season_id}"},
-    {"table": "sportmonks__standings", "path": "/standings/seasons/{season_id}"},
-    {"table": "sportmonks__topscorers","path": "/topscorers/seasons/{season_id}"},
+    {"table": "sportmonks__referees",  "path": "/referees/seasons/{season_id}",  "includes": "country"},
+    {"table": "sportmonks__standings", "path": "/standings/seasons/{season_id}", "includes": "participant;details;rule"},
+    {"table": "sportmonks__topscorers","path": "/topscorers/seasons/{season_id}","includes": "player;participant;type"},
 ]
 
 STAGE_ENDPOINTS = [
-    {"table": "sportmonks__stage_topscorers", "path": "/topscorers/stages/{stage_id}"},
-    {"table": "sportmonks__stage_statistics", "path": "/statistics/stages/{stage_id}"},
+    {"table": "sportmonks__stage_topscorers", "path": "/topscorers/stages/{stage_id}", "includes": "player;participant;type"},
+    {"table": "sportmonks__stage_statistics", "path": "/statistics/stages/{stage_id}", "includes": "type"},
 ]
 
 ROUND_ENDPOINTS = [
-    {"table": "sportmonks__round_statistics", "path": "/statistics/rounds/{round_id}"},
+    {"table": "sportmonks__round_statistics", "path": "/statistics/rounds/{round_id}", "includes": "type"},
 ]
 
 TEAM_ENDPOINTS = [
-    {"table": "sportmonks__transfers", "path": "/transfers/teams/{team_id}"},
+    {"table": "sportmonks__transfers", "path": "/transfers/teams/{team_id}", "includes": "player;fromTeam;toTeam;type"},
     {"table": "sportmonks__rivals",    "path": "/rivals/teams/{team_id}"},
 ]
 
 TEAM_PAIR_ENDPOINTS = [
-    {"table": "sportmonks__h2h", "path": "/fixtures/head-to-head/{team1_id}/{team2_id}"},
+    {"table": "sportmonks__h2h", "path": "/fixtures/head-to-head/{team1_id}/{team2_id}", "includes": "scores;participants;state;events;statistics;referees.referee;periods"},
 ]
 
 # ── Runner ───────────────────────────────────────────────────────────────────

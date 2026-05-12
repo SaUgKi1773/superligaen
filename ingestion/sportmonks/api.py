@@ -22,7 +22,7 @@ def get(path: str, params: dict | None = None) -> dict:
     url = f"{API_BASE}{path}"
     params = params or {}
     for attempt in range(MAX_RETRIES):
-        r = requests.get(url, headers=_headers(), params=params, timeout=30)
+        r = requests.get(url, headers=_headers(), params=params, timeout=60)
         if r.status_code == 429:
             wait = 60 * (attempt + 1)
             log.warning("Rate limited — waiting %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)

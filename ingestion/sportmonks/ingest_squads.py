@@ -20,7 +20,7 @@ def load_squads(conn, seasons: list) -> None:
         teams = get_paginated(f"/teams/seasons/{season_id}")
         for team in teams:
             team_id = team["id"]
-            players = get_paginated(f"/squads/seasons/{season_id}/teams/{team_id}")
+            players = get_paginated(f"/squads/seasons/{season_id}/teams/{team_id}", {"include": "player;position"})
             for p in players:
                 if p["id"] not in seen:
                     seen.add(p["id"])
