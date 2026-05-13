@@ -9,7 +9,7 @@ import time
 
 import requests
 
-from config import API_BASE, API_CALL_DELAY, CORE_API_BASE, MAX_RETRIES, PER_PAGE  # noqa: F401
+from config import API_BASE, API_CALL_DELAY, CORE_API_BASE, MAX_RETRIES, PER_PAGE, REQUEST_TIMEOUT  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def get(path: str, params: dict = None, base: str = API_BASE) -> dict:
     params = params or {}
     for attempt in range(MAX_RETRIES):
         try:
-            r = requests.get(url, headers=_headers(), params=params, timeout=60)
+            r = requests.get(url, headers=_headers(), params=params, timeout=REQUEST_TIMEOUT)
         except requests.RequestException as exc:
             log.warning("Request error (attempt %d/%d): %s", attempt + 1, MAX_RETRIES, exc)
             time.sleep(5 * (attempt + 1))
