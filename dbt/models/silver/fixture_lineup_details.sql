@@ -25,7 +25,13 @@ SELECT
     (d->>'team_id')::INTEGER       AS team_id,
     (d->>'lineup_id')::BIGINT      AS lineup_id,
     (d->>'type_id')::INTEGER       AS type_id,
-    TRY_CAST(d->'data'->>'value' AS DOUBLE) AS value,
+    TRY_CAST(
+        CASE d->'data'->>'value'
+            WHEN 'true'  THEN '1'
+            WHEN 'false' THEN '0'
+            ELSE d->'data'->>'value'
+        END
+    AS DOUBLE) AS value,
     lineups._ingested_at
 FROM lineups,
 unnest(json_transform(lineup_json::VARCHAR, '{"details": ["JSON"]}').details) AS t(d)

@@ -8,6 +8,7 @@ macro-paths: ["macros"]
 
 models:
   superligaen:
+    +post_hook: "DROP TABLE IF EXISTS {{ this.schema }}.{{ this.identifier }}__dbt_backup"
     silver:
       +materialized: table
       +schema: silver

@@ -1,18 +1,22 @@
-name: Gold transformation
+name: Silver transformation
 
 on:
   workflow_dispatch:
     inputs:
+      full_refresh:
+        description: "Set to 'true' to fully rebuild all silver tables from bronze"
+        required: false
+        default: "false"
       target_db:
         description: "Target MotherDuck database (superligaen or superligaen_dev). Default: superligaen."
         required: false
         default: ""
 
 jobs:
-  gold:
-    name: Gold transformation
+  transform:
+    name: Silver transformation
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -31,10 +35,14 @@ jobs:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: dbt deps
 
-      - name: Run gold
+      - name: Run silver
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select gold.* --target $TARGET
+          if [ "${{ github.event.inputs.full_refresh }}" = "true" ]; then
+            dbt run --select silver.* --target $TARGET --full-refresh
+          else
+            dbt run --select silver.* --target $TARGET
+          fi
