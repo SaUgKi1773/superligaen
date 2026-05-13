@@ -9,7 +9,7 @@ import time
 
 import requests
 
-from config import API_BASE, CORE_API_BASE, MAX_RETRIES, PER_PAGE  # noqa: F401
+from config import API_BASE, API_CALL_DELAY, CORE_API_BASE, MAX_RETRIES, PER_PAGE  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -29,11 +29,13 @@ def get(path: str, params: dict = None, base: str = API_BASE) -> dict:
             time.sleep(5 * (attempt + 1))
             continue
         if r.status_code == 429:
-            wait = 60 * (attempt + 1)
+            # Cap backoff at 600 s so that long rate-limit windows are survived
+            wait = min(60 * (attempt + 1), 600)
             log.warning("Rate limited — sleeping %ds (attempt %d/%d)", wait, attempt + 1, MAX_RETRIES)
             time.sleep(wait)
             continue
         r.raise_for_status()
+        time.sleep(API_CALL_DELAY)  # throttle: keep well below rate-limit ceiling
         return r.json()
     raise RuntimeError(f"Max retries ({MAX_RETRIES}) exceeded for {url}")
 

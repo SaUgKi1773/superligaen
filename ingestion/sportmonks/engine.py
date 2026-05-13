@@ -98,6 +98,8 @@ def _params(entry: dict) -> dict:
     p = {}
     if entry.get("includes"):
         p["include"] = entry["includes"]
+    if entry.get("extra_params"):
+        p.update(entry["extra_params"])
     return p
 
 

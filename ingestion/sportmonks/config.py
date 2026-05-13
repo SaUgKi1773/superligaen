@@ -5,9 +5,10 @@ CORE_API_BASE = "https://api.sportmonks.com/v3/core"
 
 LEAGUE_ID         = 271
 FIRST_SEASON_YEAR = 2010
-MAX_RETRIES       = 5
+MAX_RETRIES       = 8
 PER_PAGE          = 100
 DATE_CHUNK_DAYS   = 90   # stay under the ~100-day API window limit
+API_CALL_DELAY    = 1.0  # seconds between every API request (rate-limit throttle)
 INCREMENTAL_DAYS_BACK    = 3
 INCREMENTAL_DAYS_FORWARD = 30
 
@@ -93,22 +94,26 @@ ENDPOINT_MANIFEST = [
         "modes":    ["full", "incremental"],
     },
     {
-        "table":    "sportmonks__core_regions",
-        "path":     "/regions",
-        "base":     CORE_API_BASE,
-        "strategy": "static",
-        "delete":   "global",
-        "includes": "",
-        "modes":    ["full", "incremental"],
+        "table":        "sportmonks__core_regions",
+        "path":         "/regions",
+        "base":         CORE_API_BASE,
+        "strategy":     "static",
+        "delete":       "global",
+        "includes":     "",
+        # Filter to Denmark only — global dataset is 3000+ rows across all countries
+        "extra_params": {"filters": "regionCountries:320"},
+        "modes":        ["full", "incremental"],
     },
     {
-        "table":    "sportmonks__core_cities",
-        "path":     "/cities",
-        "base":     CORE_API_BASE,
-        "strategy": "static",
-        "delete":   "global",
-        "includes": "",
-        "modes":    ["full", "incremental"],
+        "table":       "sportmonks__core_cities",
+        "path":        "/cities",
+        "base":        CORE_API_BASE,
+        "strategy":    "static",
+        "delete":      "global",
+        "includes":    "",
+        # Filter to Denmark only — the global cities dataset is enormous (100k+ rows)
+        "extra_params": {"filters": f"cityCountries:{320}"},
+        "modes":       ["full", "incremental"],
     },
     {
         "table":    "sportmonks__core_players",
@@ -152,6 +157,25 @@ ENDPOINT_MANIFEST = [
         "strategy": "seasons_from_league",
         "delete":   "global",
         "includes": "",
+        "modes":    ["full", "incremental"],
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # FOOTBALL API — Players  (delete: global)
+    # Subscription-scoped; provides positions, transfers, statistics etc.
+    # Full truncate + reload on every run.
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "table":    "sportmonks__players",
+        "path":     "/players",
+        "strategy": "static",
+        "delete":   "global",
+        "includes": (
+            "sport;country;city;nationality;"
+            "transfers;pendingTransfers;teams;"
+            "statistics;position;detailedPosition;trophies;metadata"
+        ),
         "modes":    ["full", "incremental"],
     },
 
@@ -344,22 +368,4 @@ ENDPOINT_MANIFEST = [
         "modes":    ["full", "incremental"],
     },
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # FOOTBALL API — Players  (delete: global)
-    # Subscription-scoped; provides positions, transfers, statistics etc.
-    # Full truncate + reload on every run.
-    # ══════════════════════════════════════════════════════════════════════════
-
-    {
-        "table":    "sportmonks__players",
-        "path":     "/players",
-        "strategy": "static",
-        "delete":   "global",
-        "includes": (
-            "sport;country;city;nationality;"
-            "transfers;pendingTransfers;teams;"
-            "statistics;position;detailedPosition;trophies;metadata"
-        ),
-        "modes":    ["full", "incremental"],
-    },
 ]
