@@ -29,16 +29,13 @@ GLOBAL_TABLES = [
     "sportmonks__core_continents",
     "sportmonks__core_countries",
     "sportmonks__core_regions",
-    "sportmonks__core_cities",     # new
-    "sportmonks__core_players",
+    "sportmonks__core_cities",
     # Football API global tables
     "sportmonks__types",
     "sportmonks__league",
     "sportmonks__seasons",
-    "sportmonks__coaches",
     "sportmonks__transfers",
     "sportmonks__rivals",
-    "sportmonks__h2h",
     "sportmonks__players",         # new: football-API player data with full includes
 ]
 
@@ -48,7 +45,6 @@ SEASONAL_TABLES = [
     "sportmonks__teams",
     "sportmonks__venues",
     "sportmonks__referees",
-    "sportmonks__squads",
     "sportmonks__standings",
     "sportmonks__topscorers",
     "sportmonks__stage_topscorers",

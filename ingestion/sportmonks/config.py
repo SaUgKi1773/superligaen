@@ -104,27 +104,17 @@ ENDPOINT_MANIFEST = [
         "extra_params": {"filters": "regionCountries:320"},
         "modes":        ["full", "incremental"],
     },
-    {
-        "table":       "sportmonks__core_cities",
-        "path":        "/cities",
-        "base":        CORE_API_BASE,
-        "strategy":    "static",
-        "delete":      "global",
-        "includes":    "",
-        # Filter to Denmark only — the global cities dataset is enormous (100k+ rows)
-        "extra_params": {"filters": f"cityCountries:{320}"},
-        "modes":       ["full", "incremental"],
-    },
-    {
-        "table":    "sportmonks__core_players",
-        # Core-API player roster (subscription-scoped, lightweight)
-        "path":     "/players",
-        "base":     CORE_API_BASE,
-        "strategy": "static",
-        "delete":   "global",
-        "includes": "",
-        "modes":    ["full", "incremental"],
-    },
+    # {
+    #     "table":       "sportmonks__core_cities",
+    #     "path":        "/cities",
+    #     "base":        CORE_API_BASE,
+    #     "strategy":    "static",
+    #     "delete":      "global",
+    #     "includes":    "",
+    #     # Filter to Denmark only — the global cities dataset is enormous (100k+ rows)
+    #     "extra_params": {"filters": f"cityCountries:{320}"},
+    #     "modes":       ["full", "incremental"],
+    # },
     {
         "table":    "sportmonks__types",
         # Lookup table for every type_id referenced in other tables
@@ -215,15 +205,6 @@ ENDPOINT_MANIFEST = [
         "modes":       ["full", "incremental"],
     },
     {
-        "table":    "sportmonks__squads",
-        # One row per squad entry (player × team × season)
-        "path":     "/squads/seasons/{season_id}/teams/{team_id}",
-        "strategy": "season_team_based",
-        "delete":   "seasonal",
-        "includes": "player;position;detailedPosition;transfer",
-        "modes":    ["full", "incremental"],
-    },
-    {
         "table":    "sportmonks__venues",
         "path":     "/venues/seasons/{season_id}",
         "strategy": "season_based",
@@ -290,14 +271,6 @@ ENDPOINT_MANIFEST = [
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        "table":    "sportmonks__coaches",
-        "path":     "/coaches/teams/{team_id}",
-        "strategy": "team_based",
-        "delete":   "global",
-        "includes": "sport;country;teams;statistics;nationality;trophies;player",
-        "modes":    ["full", "incremental"],
-    },
-    {
         "table":    "sportmonks__transfers",
         "path":     "/transfers/teams/{team_id}",
         "strategy": "team_based",
@@ -311,19 +284,6 @@ ENDPOINT_MANIFEST = [
         "strategy": "team_based",
         "delete":   "global",
         "includes": "team;rival",
-        "modes":    ["full", "incremental"],
-    },
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # FOOTBALL API — H2H  (all pairwise team combinations)
-    # ══════════════════════════════════════════════════════════════════════════
-
-    {
-        "table":    "sportmonks__h2h",
-        "path":     "/fixtures/head-to-head/{team1_id}/{team2_id}",
-        "strategy": "pair_based",
-        "delete":   "global",
-        "includes": "scores;participants;state;referees.referee",
         "modes":    ["full", "incremental"],
     },
 
