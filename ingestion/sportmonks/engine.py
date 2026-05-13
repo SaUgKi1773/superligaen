@@ -405,17 +405,16 @@ def _dispatch(conn, entry: dict, ctx: _Context, mode: str) -> None:
 
 # ── Public entry points ────────────────────────────────────────────────────────
 
-def run(conn, mode: str = "incremental") -> None:
+def run(conn, mode: str = "incremental", tables: set = None) -> None:
     """
-    Execute the full ingestion pipeline driven by ENDPOINT_MANIFEST.
-
-    Every table is loaded in both modes.  The delete strategy per entry
-    determines how much data is replaced:
+    Execute the ingestion pipeline driven by ENDPOINT_MANIFEST.
 
     mode "full"        — all seasons iterated for seasonal tables;
                          full season-range chunks for fixtures
     mode "incremental" — current season only for seasonal tables;
                          rolling ±3 / +30 day window for fixtures
+    tables             — optional set of table names to restrict the run to;
+                         if None, all manifest entries for the given mode are run
     """
     if mode not in ("full", "incremental"):
         raise ValueError(f"mode must be 'full' or 'incremental', got {mode!r}")
@@ -424,6 +423,8 @@ def run(conn, mode: str = "incremental") -> None:
 
     ctx = _Context()
     active = [e for e in ENDPOINT_MANIFEST if mode in e.get("modes", ["full"])]
+    if tables:
+        active = [e for e in active if e["table"] in tables]
 
     for entry in active:
         try:

@@ -32,6 +32,8 @@ GLOBAL_TABLES = [
     "sportmonks__core_cities",
     # Football API global tables
     "sportmonks__types",
+    "sportmonks__states",
+    "sportmonks__tv_stations",
     "sportmonks__league",
     "sportmonks__seasons",
     "sportmonks__transfers",

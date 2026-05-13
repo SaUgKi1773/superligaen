@@ -6,6 +6,7 @@ Usage
   python run.py --mode full --db /path/to/local.duckdb
   python run.py --mode incremental --db md:superligaen
   python run.py                          # DUCKDB_PATH env var or config default
+  python run.py --tables sportmonks__states,sportmonks__tv_stations
 
 Modes
 -----
@@ -67,15 +68,22 @@ def main() -> None:
             "Falls back to DUCKDB_PATH env var, then config default."
         ),
     )
+    parser.add_argument(
+        "--tables",
+        default=None,
+        metavar="TABLE1,TABLE2",
+        help="Comma-separated list of table names to run (default: all).",
+    )
     args = parser.parse_args()
 
     if "SPORTMONKS_API_KEY" not in os.environ:
         log.error("SPORTMONKS_API_KEY is not set — check your .env file")
         sys.exit(1)
 
+    tables = set(args.tables.split(",")) if args.tables else None
     conn = connect(args.db)
     ensure_schema(conn)
-    engine.run(conn, mode=args.mode)
+    engine.run(conn, mode=args.mode, tables=tables)
     conn.close()
 
 
