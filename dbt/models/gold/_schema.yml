@@ -33,7 +33,6 @@ models:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [match_sk, player_sk, team_sk]
-          where: "player_sk > 0"
     columns:
       - name: match_sk
         tests: [not_null]
