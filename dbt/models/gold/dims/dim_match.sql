@@ -23,12 +23,18 @@ WITH regular_season_max AS (
 participants_pivot AS (
     SELECT
         fixture_id,
+        MAX(CASE WHEN location = 'home' THEN team_id        END) AS home_team_id,
         MAX(CASE WHEN location = 'home' THEN team_name       END) AS home_team_name,
         MAX(CASE WHEN location = 'home' THEN team_short_code END) AS home_team_code,
+        MAX(CASE WHEN location = 'away' THEN team_id        END) AS away_team_id,
         MAX(CASE WHEN location = 'away' THEN team_name       END) AS away_team_name,
         MAX(CASE WHEN location = 'away' THEN team_short_code END) AS away_team_code
     FROM {{ ref('fixture_participants') }}
     GROUP BY fixture_id
+),
+name_map AS (
+    SELECT team_id, display_name, short_name
+    FROM {{ ref('team_names') }}
 ),
 scores_pivot AS (
     SELECT
@@ -53,9 +59,9 @@ src AS (
             WHEN 'GROUP_STAGE' THEN 'Group Stage'
             WHEN 'KNOCK_OUT'   THEN 'Knockout'
         END                                                                      AS match_type,
-        COALESCE(pp.home_team_name, '') || ' - ' || COALESCE(pp.away_team_name, '') AS match_name,
-        COALESCE(pp.home_team_code, pp.home_team_name, '')
-            || ' - ' || COALESCE(pp.away_team_code, pp.away_team_name, '')      AS match_short_name,
+        COALESCE(nm_h.display_name, pp.home_team_name, '') || ' - ' || COALESCE(nm_a.display_name, pp.away_team_name, '') AS match_name,
+        COALESCE(nm_h.short_name, pp.home_team_code, pp.home_team_name, '')
+            || ' - ' || COALESCE(nm_a.short_name, pp.away_team_code, pp.away_team_name, '')      AS match_short_name,
         CASE WHEN f.state_developer_name IN ('FT', 'FT_PEN', 'AET')
              THEN sp.goals_home::VARCHAR || ' - ' || sp.goals_away::VARCHAR
         END                                                                      AS match_result,
@@ -69,6 +75,8 @@ src AS (
     LEFT JOIN regular_season_max       rsm ON rsm.season_id  = f.season_id
     LEFT JOIN participants_pivot       pp  ON pp.fixture_id  = f.id
     LEFT JOIN scores_pivot             sp  ON sp.fixture_id  = f.id
+    LEFT JOIN name_map                 nm_h ON nm_h.team_id = pp.home_team_id
+    LEFT JOIN name_map                 nm_a ON nm_a.team_id = pp.away_team_id
 )
 SELECT
     {% if is_incremental() %}
