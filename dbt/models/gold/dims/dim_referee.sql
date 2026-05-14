@@ -16,19 +16,47 @@ WITH latest AS (
     FROM {{ ref('referees') }}
     WHERE id IS NOT NULL
     ORDER BY id, _ingested_at DESC
+),
+with_canonical AS (
+    SELECT
+        COALESCE(o.canonical_referee_id, l.id) AS canonical_id,
+        l.id,
+        l.common_name,
+        l.firstname,
+        l.lastname,
+        l.display_name,
+        l.country_name,
+        l.image_path
+    FROM latest l
+    LEFT JOIN {{ ref('referee_id_overrides') }} o ON o.referee_id = l.id
+),
+deduped AS (
+    SELECT DISTINCT ON (canonical_id)
+        canonical_id,
+        common_name,
+        firstname,
+        lastname,
+        display_name,
+        country_name,
+        image_path
+    FROM with_canonical
+    ORDER BY
+        canonical_id,
+        CASE WHEN id = canonical_id THEN 0 ELSE 1 END,
+        id
 )
 SELECT
     {% if is_incremental() %}
     (SELECT COALESCE(MAX(referee_sk), 0) FROM {{ this }} WHERE referee_sk > 0)
-        + ROW_NUMBER() OVER (ORDER BY id) AS referee_sk,
+        + ROW_NUMBER() OVER (ORDER BY canonical_id) AS referee_sk,
     {% else %}
-    ROW_NUMBER() OVER (ORDER BY id) AS referee_sk,
+    ROW_NUMBER() OVER (ORDER BY canonical_id) AS referee_sk,
     {% endif %}
-    id           AS referee_id,
-    common_name  AS referee_common_name,
-    firstname    AS referee_firstname,
-    lastname     AS referee_lastname,
-    display_name AS referee_display_name,
-    country_name AS referee_nationality,
-    image_path   AS referee_image_path
-FROM latest
+    canonical_id  AS referee_id,
+    common_name   AS referee_common_name,
+    firstname     AS referee_firstname,
+    lastname      AS referee_lastname,
+    display_name  AS referee_display_name,
+    country_name  AS referee_nationality,
+    image_path    AS referee_image_path
+FROM deduped
