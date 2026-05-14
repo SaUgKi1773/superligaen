@@ -3,9 +3,9 @@
         materialized='incremental',
         incremental_strategy='merge',
         unique_key='match_id',
-        merge_update_columns=['season', 'match_round_type', 'match_round_name', 'match_round_number', 'match_name', 'match_short_name', 'match_result', 'kick_off_time', 'match_status'],
+        merge_update_columns=['match_round_type', 'match_round_number', 'match_type', 'match_name', 'match_short_name', 'match_result', 'kick_off_time', 'match_status'],
         post_hook=[
-            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, NULL::INTEGER, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::INTEGER, 'Unknown Match', NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR), (-2, NULL::INTEGER, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::INTEGER, 'Not Applicable Match', NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR)) t(match_sk, match_id, season, match_round_type, match_round_name, match_round_number, match_name, match_short_name, match_result, kick_off_time, match_status) WHERE t.match_sk NOT IN (SELECT match_sk FROM {{ this }})"
+            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, NULL::INTEGER, NULL::VARCHAR, NULL::INTEGER, NULL::VARCHAR, 'Unknown Match', NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR), (-2, NULL::INTEGER, NULL::VARCHAR, NULL::INTEGER, NULL::VARCHAR, 'Not Applicable Match', NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR)) t(match_sk, match_id, match_round_type, match_round_number, match_type, match_name, match_short_name, match_result, kick_off_time, match_status) WHERE t.match_sk NOT IN (SELECT match_sk FROM {{ this }})"
         ]
     )
 }}
@@ -41,9 +41,7 @@ scores_pivot AS (
 src AS (
     SELECT
         f.id                                                                     AS match_id,
-        se.name                                                                  AS season,
         sg.name                                                                  AS match_round_type,
-        f.round_name                                                             AS match_round_name,
         CASE
             WHEN sg.name != 'Regular Season'
                  AND TRY_CAST(f.round_name AS INTEGER) IS NOT NULL
@@ -51,6 +49,10 @@ src AS (
             THEN TRY_CAST(f.round_name AS INTEGER) + rsm.max_round
             ELSE TRY_CAST(f.round_name AS INTEGER)
         END                                                                      AS match_round_number,
+        CASE sg.type_developer_name
+            WHEN 'GROUP_STAGE' THEN 'Group Stage'
+            WHEN 'KNOCK_OUT'   THEN 'Knockout'
+        END                                                                      AS match_type,
         COALESCE(pp.home_team_name, '') || ' - ' || COALESCE(pp.away_team_name, '') AS match_name,
         COALESCE(pp.home_team_code, pp.home_team_name, '')
             || ' - ' || COALESCE(pp.away_team_code, pp.away_team_name, '')      AS match_short_name,
@@ -63,8 +65,7 @@ src AS (
                                                                                  AS kick_off_time,
         f.state_name                                                             AS match_status
     FROM {{ ref('fixtures') }} f
-    LEFT JOIN {{ ref('seasons') }}     se ON se.id  = f.season_id
-    LEFT JOIN {{ ref('stages') }}      sg ON sg.id  = f.stage_id
+    LEFT JOIN {{ ref('stages') }}      sg  ON sg.id          = f.stage_id
     LEFT JOIN regular_season_max       rsm ON rsm.season_id  = f.season_id
     LEFT JOIN participants_pivot       pp  ON pp.fixture_id  = f.id
     LEFT JOIN scores_pivot             sp  ON sp.fixture_id  = f.id
@@ -77,10 +78,9 @@ SELECT
     ROW_NUMBER() OVER (ORDER BY match_id) AS match_sk,
     {% endif %}
     match_id,
-    season,
     match_round_type,
-    match_round_name,
     match_round_number,
+    match_type,
     match_name,
     match_short_name,
     match_result,
