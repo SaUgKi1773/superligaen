@@ -43,6 +43,30 @@ main_referee AS (
     FROM {{ ref('fixture_referees') }}
     WHERE type_id = 6
 ),
+-- Goals scored against each team, with the minute they occurred
+goals_against_team AS (
+    SELECT
+        fe.fixture_id,
+        CASE
+            WHEN fe.type_developer_name = 'OWNGOAL' THEN fe.team_id
+            ELSE fp_opp.team_id
+        END                                      AS conceding_team_id,
+        fe.minute + COALESCE(fe.extra_minute, 0) AS goal_minute
+    FROM {{ ref('fixture_events') }} fe
+    LEFT JOIN {{ ref('fixture_participants') }} fp_opp
+        ON  fp_opp.fixture_id = fe.fixture_id
+        AND fp_opp.team_id   != fe.team_id
+    WHERE fe.type_developer_name IN ('GOAL', 'OWNGOAL')
+      AND fe.team_id IS NOT NULL
+      AND fe.minute  IS NOT NULL
+),
+-- Minute a substitute came ON (player_id = incoming player in SUBSTITUTION events)
+gk_sub_minute AS (
+    SELECT fixture_id, player_id, MIN(minute) AS minute_on
+    FROM {{ ref('fixture_events') }}
+    WHERE type_developer_name = 'SUBSTITUTION' AND player_id IS NOT NULL
+    GROUP BY fixture_id, player_id
+),
 coaches AS (
     SELECT fixture_id, team_id, coach_id
     FROM {{ ref('fixture_coaches') }}
@@ -73,6 +97,44 @@ lineup_base AS (
       AND lu.team_id   IS NOT NULL
       AND (lu.type_id = 11 OR COALESCE(lm.minutes_played, 0) > 0)
     ORDER BY lu.fixture_id, lu.player_id, lu.type_id ASC
+),
+-- How many GKs played per team per fixture (determines whether to split goals)
+gk_count_per_team AS (
+    SELECT fixture_id, team_id, COUNT(*) AS gk_count
+    FROM lineup_base
+    WHERE position_id = 24
+    GROUP BY fixture_id, team_id
+),
+-- Goals conceded per GK:
+--   Single GK  → gets all team goals (avoids missing extra-time goals due to minutes_played rounding)
+--   Multi  GK  → split by on-pitch window; starter cutoff = minutes_played, sub start = substitution minute
+gk_goals_conceded AS (
+    SELECT
+        lb.fixture_id,
+        lb.player_id,
+        COUNT(gat.goal_minute) AS goals_conceded
+    FROM lineup_base lb
+    JOIN gk_count_per_team gct ON gct.fixture_id = lb.fixture_id AND gct.team_id = lb.team_id
+    LEFT JOIN gk_sub_minute gsm ON gsm.fixture_id = lb.fixture_id AND gsm.player_id = lb.player_id
+    LEFT JOIN goals_against_team gat
+        ON  gat.fixture_id        = lb.fixture_id
+        AND gat.conceding_team_id = lb.team_id
+        AND (
+            gct.gk_count = 1
+            OR (
+                gct.gk_count > 1
+                AND gat.goal_minute > CASE
+                        WHEN lb.lineup_type_id = 11 THEN 0
+                        ELSE COALESCE(gsm.minute_on, GREATEST(0, 90 - lb.minutes_played))
+                    END
+                AND gat.goal_minute <= CASE
+                        WHEN lb.lineup_type_id = 11 THEN lb.minutes_played
+                        ELSE 200
+                    END
+            )
+        )
+    WHERE lb.position_id = 24
+    GROUP BY lb.fixture_id, lb.player_id
 ),
 stats AS (
     SELECT
@@ -222,12 +284,12 @@ src AS (
         COALESCE(s.penalty_scored,     0) AS penalty_scored,
         COALESCE(s.penalty_missed,     0) AS penalty_missed,
         COALESCE(s.penalty_saved,      0) AS penalty_saved,
-        -- Goalkeeping
-        COALESCE(s.goals_conceded,     0) AS goals_conceded,
-        COALESCE(s.saves,              0) AS saves,
-        COALESCE(s.saves_inside_box,   0) AS saves_inside_box,
-        COALESCE(s.goalkeeper_punches,            0) AS goalkeeper_punches,
-        COALESCE(s.high_ball_claims,   0) AS high_ball_claims,
+        -- Goalkeeping (NULL for non-GKs; goals_conceded from event data to correctly handle GK substitutions)
+        CASE WHEN lb.position_id = 24 THEN COALESCE(ggc.goals_conceded,   0) END AS goals_conceded,
+        CASE WHEN lb.position_id = 24 THEN COALESCE(s.saves,              0) END AS saves,
+        CASE WHEN lb.position_id = 24 THEN COALESCE(s.saves_inside_box,   0) END AS saves_inside_box,
+        CASE WHEN lb.position_id = 24 THEN COALESCE(s.goalkeeper_punches, 0) END AS goalkeeper_punches,
+        CASE WHEN lb.position_id = 24 THEN COALESCE(s.high_ball_claims,   0) END AS high_ball_claims,
         COALESCE(s.errors_leading_to_goal,0) AS errors_leading_to_goal,
         COALESCE(s.errors_leading_to_shot,0) AS errors_leading_to_shot,
         -- General
@@ -239,7 +301,8 @@ src AS (
     LEFT JOIN team_context  tc       ON tc.fixture_id  = lb.fixture_id AND tc.team_id = lb.team_id
     LEFT JOIN team_scores   ts_own   ON ts_own.fixture_id = lb.fixture_id AND ts_own.team_id = lb.team_id
     LEFT JOIN team_scores   ts_opp   ON ts_opp.fixture_id = lb.fixture_id AND ts_opp.team_id = tc.opponent_team_id
-    LEFT JOIN stats         s        ON s.fixture_id   = lb.fixture_id AND s.player_id = lb.player_id
+    LEFT JOIN stats              s   ON s.fixture_id   = lb.fixture_id AND s.player_id = lb.player_id
+    LEFT JOIN gk_goals_conceded  ggc ON ggc.fixture_id = lb.fixture_id AND ggc.player_id = lb.player_id
     LEFT JOIN coaches       co       ON co.fixture_id  = lb.fixture_id AND co.team_id  = lb.team_id
     LEFT JOIN formations    fo       ON fo.fixture_id  = lb.fixture_id AND fo.team_id  = lb.team_id
 )
