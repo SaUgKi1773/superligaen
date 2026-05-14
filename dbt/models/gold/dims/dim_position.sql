@@ -48,7 +48,7 @@ SELECT
         WHEN 'Right Midfield'     THEN 'RM'
         WHEN 'Left Wing'          THEN 'LW'
         WHEN 'Right Wing'         THEN 'RW'
-        WHEN 'Attacker'           THEN 'FW'
+        WHEN 'Attacker'           THEN 'ST'
     END                    AS position_short_code,
     position_group,
     position_group_code

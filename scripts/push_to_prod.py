@@ -5,8 +5,10 @@ Discovers all schemas and tables dynamically from the local file.
 Nukes the target schemas before uploading.
 
 Usage:
-  python scripts/push_to_prod.py                      # → superligaen (prod)
-  python scripts/push_to_prod.py --db superligaen_test
+  python scripts/push_to_prod.py                        # → superligaen (prod), all schemas
+  python scripts/push_to_prod.py --db superligaen_dev   # → different target db
+  python scripts/push_to_prod.py --schema gold           # → only the gold schema
+  python scripts/push_to_prod.py --schema gold silver    # → gold and silver only
 """
 
 import argparse
@@ -29,6 +31,7 @@ SKIP_SCHEMAS = {"information_schema", "pg_catalog", "main"}
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="superligaen", help="MotherDuck database name (default: superligaen)")
+    parser.add_argument("--schema", nargs="+", metavar="SCHEMA", help="Only push these schemas (default: all)")
     args = parser.parse_args()
 
     local_path = os.environ.get("DUCKDB_PATH", os.path.join(_PROJECT_ROOT, "superligaen_dev.duckdb"))
@@ -37,13 +40,22 @@ def main() -> None:
     # Discover tables from local file
     log.info("Reading table list from local: %s", local_path)
     local = duckdb.connect(local_path, read_only=True)
-    tables = local.execute("""
+    all_tables = local.execute("""
         SELECT schema_name, table_name
         FROM duckdb_tables()
         WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'main')
         ORDER BY schema_name, table_name
     """).fetchall()
     local.close()
+
+    if args.schema:
+        requested = set(args.schema)
+        tables = [(s, t) for s, t in all_tables if s in requested]
+        unknown = requested - {s for s, _ in all_tables}
+        if unknown:
+            log.warning("Schemas not found in local file: %s", sorted(unknown))
+    else:
+        tables = all_tables
 
     schemas = sorted({schema for schema, _ in tables})
     log.info("Found %d tables across schemas: %s", len(tables), schemas)
