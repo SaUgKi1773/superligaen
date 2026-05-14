@@ -327,8 +327,7 @@ SELECT
     COALESCE(dr.referee_sk,        -1) AS referee_sk,
     COALESCE(dc.coach_sk,          -1) AS coach_sk,
     COALESCE(df.formation_sk,      -1) AS formation_sk,
-    COALESCE(dp2.position_sk,      -1) AS position_sk,
-    COALESCE(ddp.detailed_position_sk, -1) AS detailed_position_sk,
+    COALESCE(dpos.position_sk,     -1) AS position_sk,
     src.team_side_sk,
     src.match_result_sk,
     src.appearance_type_sk,
@@ -403,8 +402,7 @@ LEFT JOIN main_referee                   mr      ON mr.fixture_id        = src.f
 LEFT JOIN {{ ref('dim_referee') }}       dr      ON dr.referee_id        = mr.referee_id
 LEFT JOIN {{ ref('dim_coach') }}         dc      ON dc.coach_id          = src.coach_id
 LEFT JOIN {{ ref('dim_formation') }}     df      ON df.formation         = src.formation
-LEFT JOIN {{ ref('dim_position') }}          dp2  ON dp2.position_id           = src.position_id
-LEFT JOIN {{ ref('dim_detailed_position') }} ddp  ON ddp.detailed_position_name = src.detailed_position_name
+LEFT JOIN {{ ref('dim_position') }}      dpos ON dpos.position_name = src.detailed_position_name
 {% if is_incremental() %}
 WHERE {{ gold_incremental_filter() }}
 {% endif %}
