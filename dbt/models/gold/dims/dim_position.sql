@@ -5,7 +5,7 @@
         unique_key='position_name',
         merge_update_columns=['position_short_code', 'position_group'],
         post_hook=[
-            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown', NULL::VARCHAR, NULL::VARCHAR)) t(position_sk, position_name, position_short_code, position_group) WHERE t.position_sk NOT IN (SELECT position_sk FROM {{ this }})"
+            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown', NULL::VARCHAR, NULL::VARCHAR), (-2, 'Not Applicable', NULL::VARCHAR, NULL::VARCHAR)) t(position_sk, position_name, position_short_code, position_group) WHERE t.position_sk NOT IN (SELECT position_sk FROM {{ this }})"
         ]
     )
 }}

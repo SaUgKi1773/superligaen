@@ -5,7 +5,7 @@
         unique_key='formation',
         merge_update_columns=['formation'],
         post_hook=[
-            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown')) t(formation_sk, formation) WHERE t.formation_sk NOT IN (SELECT formation_sk FROM {{ this }})"
+            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown'), (-2, 'Not Applicable')) t(formation_sk, formation) WHERE t.formation_sk NOT IN (SELECT formation_sk FROM {{ this }})"
         ]
     )
 }}
