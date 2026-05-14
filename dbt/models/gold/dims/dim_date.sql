@@ -16,6 +16,6 @@ SELECT
     isodow(d)::INTEGER                                    AS day_of_week,
     dayname(d)                                            AS day_name,
     CASE WHEN isodow(d) IN (6, 7) THEN 'Yes' ELSE 'No' END AS is_weekend,
-    sr.season
+    LEFT(sr.season, 4) || '/' || RIGHT(sr.season, 2) AS season
 FROM generate_series(DATE '2010-01-01', DATE '2030-12-31', INTERVAL '1 day') t(d)
 LEFT JOIN season_ranges sr ON d::DATE BETWEEN sr.season_start AND sr.season_end
