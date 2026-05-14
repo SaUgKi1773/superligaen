@@ -75,6 +75,14 @@ formations AS (
     SELECT fixture_id, team_id, formation
     FROM {{ ref('fixture_formations') }}
 ),
+player_detail AS (
+    SELECT DISTINCT ON (id)
+        id AS player_id,
+        detailed_position_name
+    FROM {{ ref('players') }}
+    WHERE id IS NOT NULL
+    ORDER BY id, _ingested_at DESC
+),
 lineup_minutes AS (
     SELECT fixture_id, player_id, MAX(value::INTEGER) AS minutes_played
     FROM {{ ref('fixture_lineup_details') }}
@@ -86,8 +94,9 @@ lineup_base AS (
         lu.fixture_id,
         lu.player_id,
         lu.team_id,
-        lu.type_id        AS lineup_type_id,
+        lu.type_id             AS lineup_type_id,
         lu.position_id,
+        lu.detailed_position_name,
         COALESCE(lm.minutes_played, 0) AS minutes_played
     FROM {{ ref('fixture_lineups') }} lu
     INNER JOIN finished_fixtures f ON f.fixture_id = lu.fixture_id
@@ -214,6 +223,7 @@ src AS (
         lb.player_id,
         lb.team_id,
         lb.position_id,
+        COALESCE(lb.detailed_position_name, pd.detailed_position_name) AS detailed_position_name,
         lb.minutes_played,
         ff.starting_at,
         ff.league_id,
@@ -301,6 +311,7 @@ src AS (
     LEFT JOIN team_scores   ts_opp   ON ts_opp.fixture_id = lb.fixture_id AND ts_opp.team_id = tc.opponent_team_id
     LEFT JOIN stats              s   ON s.fixture_id   = lb.fixture_id AND s.player_id = lb.player_id
     LEFT JOIN gk_goals_conceded  ggc ON ggc.fixture_id = lb.fixture_id AND ggc.player_id = lb.player_id
+    LEFT JOIN player_detail       pd ON pd.player_id   = lb.player_id
     LEFT JOIN coaches       co       ON co.fixture_id  = lb.fixture_id AND co.team_id  = lb.team_id
     LEFT JOIN formations    fo       ON fo.fixture_id  = lb.fixture_id AND fo.team_id  = lb.team_id
 )
@@ -317,6 +328,7 @@ SELECT
     COALESCE(dc.coach_sk,          -1) AS coach_sk,
     COALESCE(df.formation_sk,      -1) AS formation_sk,
     COALESCE(dp2.position_sk,      -1) AS position_sk,
+    COALESCE(ddp.detailed_position_sk, -1) AS detailed_position_sk,
     src.team_side_sk,
     src.match_result_sk,
     src.appearance_type_sk,
@@ -391,7 +403,8 @@ LEFT JOIN main_referee                   mr      ON mr.fixture_id        = src.f
 LEFT JOIN {{ ref('dim_referee') }}       dr      ON dr.referee_id        = mr.referee_id
 LEFT JOIN {{ ref('dim_coach') }}         dc      ON dc.coach_id          = src.coach_id
 LEFT JOIN {{ ref('dim_formation') }}     df      ON df.formation         = src.formation
-LEFT JOIN {{ ref('dim_position') }}      dp2     ON dp2.position_id      = src.position_id
+LEFT JOIN {{ ref('dim_position') }}          dp2  ON dp2.position_id           = src.position_id
+LEFT JOIN {{ ref('dim_detailed_position') }} ddp  ON ddp.detailed_position_name = src.detailed_position_name
 {% if is_incremental() %}
 WHERE {{ gold_incremental_filter() }}
 {% endif %}
