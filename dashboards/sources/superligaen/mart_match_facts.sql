@@ -71,7 +71,7 @@ SELECT
         PARTITION BY f.team_sk, d.season
         ORDER BY m.match_round_number
     )                                                                        AS cumulative_gf
-FROM superligaen.gold.fct_team_match  f
+FROM superligaen.gold.fct_team_matches  f
 JOIN superligaen.gold.dim_date           d   ON d.date_sk           = f.date_sk
 JOIN superligaen.gold.dim_match          m   ON m.match_sk          = f.match_sk
 JOIN superligaen.gold.dim_team           t   ON t.team_sk           = f.team_sk
