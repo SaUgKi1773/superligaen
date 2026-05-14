@@ -51,25 +51,28 @@ formations AS (
     SELECT fixture_id, team_id, formation
     FROM {{ ref('fixture_formations') }}
 ),
+lineup_minutes AS (
+    SELECT fixture_id, player_id, MAX(value::INTEGER) AS minutes_played
+    FROM {{ ref('fixture_lineup_details') }}
+    WHERE type_id = 119
+    GROUP BY fixture_id, player_id
+),
 lineup_base AS (
-    SELECT
+    SELECT DISTINCT ON (lu.fixture_id, lu.player_id)
         lu.fixture_id,
         lu.player_id,
         lu.team_id,
         lu.type_id        AS lineup_type_id,
         lu.position_id,
-        COALESCE(
-            MAX(CASE WHEN ld.type_id = 119 THEN ld.value::INTEGER END)
-            OVER (PARTITION BY lu.fixture_id, lu.player_id),
-            0
-        ) AS minutes_played
+        COALESCE(lm.minutes_played, 0) AS minutes_played
     FROM {{ ref('fixture_lineups') }} lu
     INNER JOIN finished_fixtures f ON f.fixture_id = lu.fixture_id
-    LEFT JOIN {{ ref('fixture_lineup_details') }} ld
-        ON ld.fixture_id = lu.fixture_id AND ld.player_id = lu.player_id AND ld.type_id = 119
+    LEFT JOIN lineup_minutes lm
+        ON lm.fixture_id = lu.fixture_id AND lm.player_id = lu.player_id
     WHERE lu.player_id IS NOT NULL
       AND lu.team_id   IS NOT NULL
-    QUALIFY lu.type_id = 11 OR minutes_played > 0
+      AND (lu.type_id = 11 OR COALESCE(lm.minutes_played, 0) > 0)
+    ORDER BY lu.fixture_id, lu.player_id, lu.type_id ASC
 ),
 stats AS (
     SELECT
