@@ -121,7 +121,11 @@ jobs:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select gold.* --target $TARGET
+          if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
+            dbt run --select gold.* --target $TARGET --full-refresh
+          else
+            dbt run --select gold.* --target $TARGET
+          fi
 
   # ---------------------------------------------------------------------------
   # DQ tests — run after gold, block publish if any test fails
