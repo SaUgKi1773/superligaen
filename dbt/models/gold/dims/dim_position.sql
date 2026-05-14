@@ -3,9 +3,9 @@
         materialized='incremental',
         incremental_strategy='merge',
         unique_key='position_name',
-        merge_update_columns=['position_short_code', 'position_group', 'position_group_code'],
+        merge_update_columns=['position_short_code', 'position_group'],
         post_hook=[
-            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown', NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR)) t(position_sk, position_name, position_short_code, position_group, position_group_code) WHERE t.position_sk NOT IN (SELECT position_sk FROM {{ this }})"
+            "INSERT INTO {{ this }} SELECT * FROM (VALUES (-1, 'Unknown', NULL::VARCHAR, NULL::VARCHAR)) t(position_sk, position_name, position_short_code, position_group) WHERE t.position_sk NOT IN (SELECT position_sk FROM {{ this }})"
         ]
     )
 }}
@@ -14,17 +14,15 @@ WITH position_counts AS (
     SELECT
         detailed_position_name,
         position_name,
-        position_code,
         COUNT(*) AS n
     FROM {{ ref('fixture_lineups') }}
     WHERE detailed_position_name IS NOT NULL AND position_name IS NOT NULL
-    GROUP BY 1, 2, 3
+    GROUP BY 1, 2
 ),
 dominant AS (
     SELECT DISTINCT ON (detailed_position_name)
         detailed_position_name,
-        position_name   AS position_group,
-        position_code   AS position_group_code
+        position_name AS position_group
     FROM position_counts
     ORDER BY detailed_position_name, n DESC
 )
@@ -50,6 +48,5 @@ SELECT
         WHEN 'Right Wing'         THEN 'RW'
         WHEN 'Attacker'           THEN 'ST'
     END                    AS position_short_code,
-    position_group,
-    position_group_code
+    position_group
 FROM dominant
