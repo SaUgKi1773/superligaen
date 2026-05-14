@@ -10,7 +10,12 @@ where result in ('Win', 'Draw', 'Loss')
 order by season desc
 ```
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
+```sql current_season
+select max(season) as season from superligaen.mart_match_facts
+where result in ('Win', 'Draw', 'Loss')
+```
+
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={current_season[0]?.season} />
 
 ```sql season_stats
 select
