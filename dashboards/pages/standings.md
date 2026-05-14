@@ -11,10 +11,6 @@ select distinct season from superligaen.mart_match_facts
 order by season desc
 ```
 
-```sql current_season
-select season from superligaen.mart_match_facts where is_current_season = true limit 1
-```
-
 <details class="mb-6 rounded-xl border border-blue-100 bg-blue-50">
   <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-blue-700 flex items-center gap-2">
     ℹ️ How does the Danish Superliga work?
@@ -41,7 +37,7 @@ select season from superligaen.mart_match_facts where is_current_season = true l
   </div>
 </details>
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={current_season[0]?.season} />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" />
 
 ```sql standings
 select

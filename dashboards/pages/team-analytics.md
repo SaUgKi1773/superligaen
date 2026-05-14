@@ -10,17 +10,13 @@ where result in ('Win', 'Draw', 'Loss')
 order by season desc
 ```
 
-```sql current_season
-select season from superligaen.mart_match_facts where is_current_season = true limit 1
-```
-
 ```sql teams
 select distinct team_name as team from superligaen.mart_match_facts
 where result in ('Win', 'Draw', 'Loss')
 order by team_name
 ```
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={current_season[0]?.season} />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" />
 
 <Dropdown data={teams} name=team value=team label=team defaultValue={teams[0]?.team} />
 
