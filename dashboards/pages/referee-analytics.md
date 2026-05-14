@@ -5,12 +5,17 @@ title: Referee Analysis
 ---
 
 ```sql seasons
-select distinct season from superligaen.mart_match_facts
-where result in ('Win', 'Draw', 'Loss')
-order by season desc
+select season from (
+  select season, max(is_current_season::int) as is_current
+  from superligaen.mart_match_facts
+  where result in ('Win', 'Draw', 'Loss')
+  group by season
+) order by is_current desc, season desc
 ```
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc" />
+{#key seasons[0]?.season}
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
+{/key}
 
 ```sql season_stats
 select

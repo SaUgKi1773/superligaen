@@ -7,8 +7,11 @@ title: Standings
 
 
 ```sql seasons
-select distinct season from superligaen.mart_match_facts
-order by season desc
+select season from (
+  select season, max(is_current_season::int) as is_current
+  from superligaen.mart_match_facts
+  group by season
+) order by is_current desc, season desc
 ```
 
 <details class="mb-6 rounded-xl border border-blue-100 bg-blue-50">
@@ -37,7 +40,9 @@ order by season desc
   </div>
 </details>
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc" />
+{#key seasons[0]?.season}
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
+{/key}
 
 ```sql standings
 select
