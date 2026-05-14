@@ -10,7 +10,17 @@
     )
 }}
 
-WITH participants_pivot AS (
+WITH regular_season_max AS (
+    SELECT
+        f.season_id,
+        MAX(TRY_CAST(f.round_name AS INTEGER)) AS max_round
+    FROM {{ ref('fixtures') }} f
+    JOIN {{ ref('stages') }} sg ON sg.id = f.stage_id
+    WHERE sg.name = 'Regular Season'
+      AND TRY_CAST(f.round_name AS INTEGER) IS NOT NULL
+    GROUP BY f.season_id
+),
+participants_pivot AS (
     SELECT
         fixture_id,
         MAX(CASE WHEN location = 'home' THEN team_name       END) AS home_team_name,
@@ -34,7 +44,13 @@ src AS (
         se.name                                                                  AS season,
         sg.name                                                                  AS match_round_type,
         f.round_name                                                             AS match_round_name,
-        TRY_CAST(f.round_name AS INTEGER)                                        AS match_round_number,
+        CASE
+            WHEN sg.name != 'Regular Season'
+                 AND TRY_CAST(f.round_name AS INTEGER) IS NOT NULL
+                 AND TRY_CAST(f.round_name AS INTEGER) <= rsm.max_round
+            THEN TRY_CAST(f.round_name AS INTEGER) + rsm.max_round
+            ELSE TRY_CAST(f.round_name AS INTEGER)
+        END                                                                      AS match_round_number,
         COALESCE(pp.home_team_name, '') || ' - ' || COALESCE(pp.away_team_name, '') AS match_name,
         COALESCE(pp.home_team_code, pp.home_team_name, '')
             || ' - ' || COALESCE(pp.away_team_code, pp.away_team_name, '')      AS match_short_name,
@@ -49,8 +65,9 @@ src AS (
     FROM {{ ref('fixtures') }} f
     LEFT JOIN {{ ref('seasons') }}     se ON se.id  = f.season_id
     LEFT JOIN {{ ref('stages') }}      sg ON sg.id  = f.stage_id
-    LEFT JOIN participants_pivot       pp ON pp.fixture_id = f.id
-    LEFT JOIN scores_pivot             sp ON sp.fixture_id = f.id
+    LEFT JOIN regular_season_max       rsm ON rsm.season_id  = f.season_id
+    LEFT JOIN participants_pivot       pp  ON pp.fixture_id  = f.id
+    LEFT JOIN scores_pivot             sp  ON sp.fixture_id  = f.id
 )
 SELECT
     {% if is_incremental() %}
