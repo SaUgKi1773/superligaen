@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: fct_team_matches
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [match_sk, team_side_sk]
+    columns:
+      - name: match_sk
+        tests: [not_null]
+      - name: team_sk
+        tests: [not_null]
+      - name: opponent_team_sk
+        tests: [not_null]
+      - name: team_side_sk
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, -1, -2]
+      - name: match_result_sk
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, -1, -2]
+      - name: goals_scored
+        tests:
+          - not_null: {where: "match_result_sk IN (1, 2, 3)"}
+      - name: goals_conceded
+        tests:
+          - not_null: {where: "match_result_sk IN (1, 2, 3)"}
+
+  - name: fct_player_appearances
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [match_sk, player_sk, team_sk]
+          where: "player_sk > 0"
+    columns:
+      - name: match_sk
+        tests: [not_null]
+      - name: player_sk
+        tests: [not_null]
+      - name: team_sk
+        tests: [not_null]
+      - name: team_side_sk
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, -1, -2]
+      - name: match_result_sk
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, -1, -2]
+      - name: appearance_type_sk
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, -1, -2]
+      - name: minutes_played
+        tests: [not_null]
