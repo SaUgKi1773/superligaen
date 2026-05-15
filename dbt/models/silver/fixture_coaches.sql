@@ -5,6 +5,14 @@
 ) }}
 
 -- Match-day coach per team per fixture.
+WITH src AS MATERIALIZED (
+    SELECT *
+    FROM {{ source('bronze', 'sportmonks__fixtures') }}
+    {% if is_incremental() %}
+    WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+    {% endif %}
+)
+
 SELECT
     (c->>'id')::INTEGER                     AS coach_id,
     f.id                                    AS fixture_id,
@@ -17,9 +25,6 @@ SELECT
     (c->>'nationality_id')::INTEGER         AS nationality_id,
     c->>'image_path'                        AS image_path,
     f._ingested_at
-FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+FROM src AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"coaches": ["JSON"]}').coaches) AS t(c)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.coaches')) > 0
-{% if is_incremental() %}
-AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
-{% endif %}

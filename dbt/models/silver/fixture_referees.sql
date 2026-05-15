@@ -4,6 +4,14 @@
     unique_key='id'
 ) }}
 
+WITH src AS MATERIALIZED (
+    SELECT *
+    FROM {{ source('bronze', 'sportmonks__fixtures') }}
+    {% if is_incremental() %}
+    WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+    {% endif %}
+)
+
 SELECT
     (ref->>'id')::INTEGER                                                       AS id,
     f.id                                                                        AS fixture_id,
@@ -16,11 +24,8 @@ SELECT
     ref->'referee'->>'display_name'                                             AS referee_display_name,
     ref->'referee'->>'image_path'                                               AS referee_image_path,
     f._ingested_at
-FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+FROM src AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"referees": ["JSON"]}').referees) AS t(ref)
 LEFT JOIN {{ ref('referee_id_overrides') }} o
     ON o.referee_id = (ref->>'referee_id')::INTEGER
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.referees')) > 0
-{% if is_incremental() %}
-AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
-{% endif %}

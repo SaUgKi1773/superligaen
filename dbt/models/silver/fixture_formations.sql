@@ -4,6 +4,14 @@
     unique_key='id'
 ) }}
 
+WITH src AS MATERIALIZED (
+    SELECT *
+    FROM {{ source('bronze', 'sportmonks__fixtures') }}
+    {% if is_incremental() %}
+    WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+    {% endif %}
+)
+
 SELECT
     (fm->>'id')::INTEGER             AS id,
     f.id                             AS fixture_id,
@@ -11,9 +19,6 @@ SELECT
     fm->>'formation'                 AS formation,
     fm->>'location'                  AS location,
     f._ingested_at
-FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+FROM src AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"formations": ["JSON"]}').formations) AS t(fm)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.formations')) > 0
-{% if is_incremental() %}
-AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
-{% endif %}
