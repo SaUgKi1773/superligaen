@@ -36,6 +36,7 @@ import json
 import logging
 from datetime import date, timedelta
 
+import duckdb
 import requests
 
 from api import get, get_paginated
@@ -87,7 +88,7 @@ def _resolve_all_team_ids(conn, team_map: dict) -> set:
             "SELECT DISTINCT id FROM bronze.sportmonks__teams"
         ).fetchall()
         ids |= {row[0] for row in rows}
-    except Exception:
+    except duckdb.CatalogException:
         pass  # table not yet created on the very first run
     return ids
 
@@ -380,6 +381,24 @@ def _dispatch(conn, entry: dict, ctx: _Context, mode: str) -> None:
 
 # ── Public entry points ────────────────────────────────────────────────────────
 
+_VALID_STRATEGIES = {
+    "static", "seasons_from_league", "season_based", "stage_based",
+    "round_based", "team_based", "pair_based", "date_based",
+}
+_REQUIRED_KEYS = {"table", "path", "strategy", "delete", "includes"}
+
+def _validate_manifest() -> None:
+    errors = []
+    for i, entry in enumerate(ENDPOINT_MANIFEST):
+        missing = _REQUIRED_KEYS - entry.keys()
+        if missing:
+            errors.append(f"entry[{i}] ({entry.get('table', '?')}): missing keys {missing}")
+        if entry.get("strategy") not in _VALID_STRATEGIES:
+            errors.append(f"entry[{i}] ({entry.get('table', '?')}): unknown strategy {entry.get('strategy')!r}")
+    if errors:
+        raise ValueError("ENDPOINT_MANIFEST validation failed:\n" + "\n".join(errors))
+
+
 def run(conn, mode: str = "incremental", tables: set = None) -> None:
     """
     Execute the ingestion pipeline driven by ENDPOINT_MANIFEST.
@@ -394,6 +413,7 @@ def run(conn, mode: str = "incremental", tables: set = None) -> None:
     if mode not in ("full", "incremental"):
         raise ValueError(f"mode must be 'full' or 'incremental', got {mode!r}")
 
+    _validate_manifest()
     log.info("=== %s LOAD START ===", mode.upper())
 
     ctx = _Context()

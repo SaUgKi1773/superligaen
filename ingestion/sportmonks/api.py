@@ -44,7 +44,7 @@ def get(path: str, params: dict = None, base: str = API_BASE) -> dict:
                     or 0
                 )
                 entity = body.get("requested_entity", "unknown")
-            except Exception:
+            except (ValueError, AttributeError, KeyError):
                 retry_after, entity = 0, "unknown"
             wait = int(retry_after) if retry_after else min(60 * (attempt + 1), 600)
             log.warning(

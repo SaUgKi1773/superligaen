@@ -5,10 +5,13 @@ Discovers all schemas and tables dynamically from the local file.
 Nukes the target schemas before uploading.
 
 Usage:
-  python scripts/push_to_prod.py                        # → superligaen (prod), all schemas
-  python scripts/push_to_prod.py --db superligaen_dev   # → different target db
-  python scripts/push_to_prod.py --schema gold           # → only the gold schema
-  python scripts/push_to_prod.py --schema gold silver    # → gold and silver only
+  python scripts/push_to_prod.py --confirm                        # → superligaen (prod), all schemas
+  python scripts/push_to_prod.py --confirm --db superligaen_dev   # → different target db
+  python scripts/push_to_prod.py --confirm --schema gold           # → only the gold schema
+  python scripts/push_to_prod.py --confirm --schema gold silver    # → gold and silver only
+
+--confirm is required to prevent accidental overwrites. Without it the script
+prints what it would do and exits.
 """
 
 import argparse
@@ -32,10 +35,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="superligaen", help="MotherDuck database name (default: superligaen)")
     parser.add_argument("--schema", nargs="+", metavar="SCHEMA", help="Only push these schemas (default: all)")
+    parser.add_argument("--confirm", action="store_true", help="Required to actually run — prevents accidental overwrites")
     args = parser.parse_args()
 
     local_path = os.environ.get("DUCKDB_PATH", os.path.join(_PROJECT_ROOT, "superligaen_dev.duckdb"))
     token = os.environ["MOTHERDUCK_TOKEN"]
+
+    if not args.confirm:
+        log.info("DRY RUN — would push %s → md:%s (schemas: %s). Re-run with --confirm to execute.",
+                 local_path, args.db, args.schema or "all")
+        return
 
     # Discover tables and views from local file
     log.info("Reading table/view list from local: %s", local_path)

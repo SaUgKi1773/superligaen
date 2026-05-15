@@ -30,6 +30,7 @@ ALL_TABLES      = GLOBAL_TABLES + SEASONAL_TABLES + DATE_TABLES
 def connect(db_path: str = None) -> duckdb.DuckDBPyConnection:
     path = db_path or os.environ.get("DUCKDB_PATH", DEFAULT_DB_PATH)
     conn = duckdb.connect(path)
+    conn.execute("SELECT 1")  # validate connectivity (catches bad MotherDuck tokens early)
     log.info("Connected: %s", path)
     return conn
 
