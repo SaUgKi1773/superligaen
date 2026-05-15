@@ -86,7 +86,7 @@ def delete_by_date(conn: duckdb.DuckDBPyConnection, table: str,
 
 # ── Insert helpers ────────────────────────────────────────────────────────────
 
-_INSERT_CHUNK = 500  # rows per INSERT statement; keeps parameter count well under DuckDB's 65535 limit
+_INSERT_CHUNK = 2000  # rows per INSERT statement; keeps parameter count well under DuckDB's 65535 limit (2000×5=10000)
 
 
 def insert_batch(
