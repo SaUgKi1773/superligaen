@@ -9,7 +9,7 @@ MAX_RETRIES       = 8
 REQUEST_TIMEOUT   = 120  # seconds per HTTP request
 PER_PAGE          = 100
 DATE_CHUNK_DAYS   = 90   # stay under the ~100-day API window limit
-API_CALL_DELAY    = 1.0  # seconds between every API request (rate-limit throttle)
+API_CALL_DELAY    = 0.2  # seconds between every API request (rate-limit throttle)
 INCREMENTAL_DAYS_BACK    = 3
 INCREMENTAL_DAYS_FORWARD = 30
 
