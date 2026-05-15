@@ -15,6 +15,7 @@ Date-win  : DELETE WHERE _fixture_date BETWEEN — transfers, fixtures
 import json
 import logging
 import os
+from datetime import datetime, timezone
 
 import duckdb
 from dotenv import load_dotenv
@@ -126,8 +127,10 @@ def insert_batch(
 ) -> None:
     if not rows:
         return
+    now = datetime.now(timezone.utc)
+    rows_with_ts = [(*r, now) for r in rows]
     conn.executemany(
-        f"INSERT INTO bronze.{table} (id, raw_json, _season_id, _fixture_date) "
-        f"VALUES (?, ?, ?, ?)",
-        rows,
+        f"INSERT INTO bronze.{table} (id, raw_json, _season_id, _fixture_date, _ingested_at) "
+        f"VALUES (?, ?, ?, ?, ?)",
+        rows_with_ts,
     )
