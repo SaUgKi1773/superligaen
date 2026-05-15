@@ -40,4 +40,4 @@ jobs:
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-        run: dbt compile --target dev
+        run: dbt compile --target prod
