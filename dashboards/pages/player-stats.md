@@ -1,7 +1,7 @@
 ---
 sidebar: never
 hide_toc: true
-title: Player Statistics
+title: Player Analysis
 ---
 
 ```sql seasons
@@ -90,7 +90,7 @@ where season = '${inputs.season.value}'
   and (team_name = '${inputs.team.value}' or '${inputs.team.value}' = 'All Teams')
 ```
 
-## Player Statistics — {inputs.season.value}
+## Player Analysis — {inputs.season.value}
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center"><BigValue data={season_kpis} value=total_players  title="Players"         /></div>

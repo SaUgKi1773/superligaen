@@ -128,7 +128,7 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">👟</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Player Statistics</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Player Analysis</div>
       <div class="text-gray-400 text-sm mt-1">Top scorers, assisters and player deep-dives by season</div>
     </div>
   </div>
