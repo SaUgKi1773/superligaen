@@ -40,8 +40,8 @@ from (
 )
 order by
     case standings_type
-        when 'Championship Group' then 1
-        when 'Relegation Group'   then 2
+        when 'Championship Round' then 1
+        when 'Relegation Round'   then 2
         when 'Regular Season'     then 3
     end,
     pts desc, gd desc, gf desc
@@ -120,6 +120,16 @@ limit 1
     <div>
       <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Team Analysis</div>
       <div class="text-gray-400 text-sm mt-1">Deep-dive KPIs, form, shooting accuracy &amp; discipline</div>
+    </div>
+  </div>
+</a>
+
+<a href="/player-stats" class="block no-underline rounded-xl border border-gray-200 bg-white p-6 hover:border-blue-500 hover:shadow-lg transition-all duration-200 group shadow-sm">
+  <div class="flex items-start gap-4">
+    <div class="text-3xl">👟</div>
+    <div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Player Statistics</div>
+      <div class="text-gray-400 text-sm mt-1">Top scorers, assisters and player deep-dives by season</div>
     </div>
   </div>
 </a>
