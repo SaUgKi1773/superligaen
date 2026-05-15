@@ -12,7 +12,7 @@ DATE_CHUNK_DAYS   = 90   # stay under the ~100-day API window limit
 API_CALL_DELAY    = 0.3  # seconds between every API request; rate limit is per entity type
                          # (~3000/hour per entity), so 0.3s is well within budget.
                          # Retry/backoff in api.py handles any 429s gracefully.
-INCREMENTAL_DAYS_BACK    = 3
+INCREMENTAL_DAYS_BACK    = int(os.environ.get("INCREMENTAL_DAYS_BACK", 7))
 INCREMENTAL_DAYS_FORWARD = 30
 
 _PROJECT_ROOT   = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))

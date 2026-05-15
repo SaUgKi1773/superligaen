@@ -18,6 +18,9 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+env:
+  INCREMENTAL_DAYS_BACK: '7'   # single source of truth — bronze and gold both inherit this
+
 jobs:
   # ---------------------------------------------------------------------------
   # Bronze — ingest raw API data from Sportmonks
@@ -98,7 +101,7 @@ jobs:
           if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
             dbt run --select silver.* --target $TARGET --full-refresh
           else
-            dbt run --select silver.* --target $TARGET
+            dbt run --select silver.* --target $TARGET --vars "{'incremental_days_back': $INCREMENTAL_DAYS_BACK}"
           fi
 
   # ---------------------------------------------------------------------------
@@ -138,7 +141,7 @@ jobs:
           if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
             dbt run --select gold.* --target $TARGET --full-refresh
           else
-            dbt run --select gold.* --target $TARGET
+            dbt run --select gold.* --target $TARGET --vars "{'incremental_days_back': $INCREMENTAL_DAYS_BACK}"
           fi
 
   # ---------------------------------------------------------------------------
