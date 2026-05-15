@@ -24,10 +24,11 @@ jobs:
 
       - name: Validate Python syntax
         run: |
-          python -m py_compile ingestion/run.py
-          python -m py_compile ingestion/api.py
-          python -m py_compile ingestion/db.py
-          python -m py_compile ingestion/config.py
+          python -m py_compile ingestion/sportmonks/run.py
+          python -m py_compile ingestion/sportmonks/api.py
+          python -m py_compile ingestion/sportmonks/db.py
+          python -m py_compile ingestion/sportmonks/config.py
+          python -m py_compile ingestion/sportmonks/engine.py
 
       - name: dbt deps
         working-directory: dbt

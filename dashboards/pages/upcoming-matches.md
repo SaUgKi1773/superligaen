@@ -86,8 +86,7 @@ select
     match_short_name                    as match,
     score,
     sum(goals_scored)                   as total_goals,
-    sum(shots_on_goal)                  as total_shots_on_goal,
-    round(sum(xg), 2)                   as total_xg
+    sum(shots_on_goal)                  as total_shots_on_goal
 from superligaen.mart_match_facts
 where result in ('Win', 'Draw', 'Loss')
   and season in ${inputs.h2h_season.value}
@@ -186,9 +185,8 @@ limit 5
     <Column id=round          title="Round"  />
     <Column id=match          title="Match"  />
     <Column id=score          title="Score"  align=center />
-    <Column id=total_goals    title="Goals"  contentType=colorscale colorPalette={['white','#22c55e']} align=center />
-    <Column id=total_shots_on_goal title="SoG" contentType=bar colorPalette={['#6366f1']} />
-    <Column id=total_xg       title="xG"     contentType=colorscale colorPalette={['white','#3b82f6']} />
+    <Column id=total_goals         title="Goals" contentType=colorscale colorPalette={['white','#22c55e']} align=center />
+    <Column id=total_shots_on_goal title="SoG"  contentType=bar colorPalette={['#6366f1']} />
 </DataTable>
 
 ---

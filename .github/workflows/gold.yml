@@ -3,18 +3,6 @@ name: Gold transformation
 on:
   workflow_dispatch:
     inputs:
-      full_load:
-        description: "Set to 'true' to fully rebuild the dimensional model from current silver"
-        required: false
-        default: "false"
-      season:
-        description: "Season year for seasonal load (e.g. 2025). Leave empty to use rolling window."
-        required: false
-        default: ""
-      lookback:
-        description: "Days to look back for incremental window (default: 5)"
-        required: false
-        default: "5"
       target_db:
         description: "Target MotherDuck database (superligaen or superligaen_dev). Default: superligaen."
         required: false
@@ -30,8 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -44,29 +31,10 @@ jobs:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: dbt deps
 
-      - name: Build gold (incremental)
-        if: ${{ github.event.inputs.full_load != 'true' }}
+      - name: Run gold
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select 'gold.*' --target $TARGET --vars '{"lookback_days": ${{ github.event.inputs.lookback || '5' }}}'
-
-      - name: Build gold (seasonal load)
-        if: ${{ github.event.inputs.full_load == 'true' && github.event.inputs.season != '' }}
-        working-directory: dbt
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-        run: |
-          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select 'gold.*' --target $TARGET --vars '{"season": ${{ github.event.inputs.season }}}'
-
-      - name: Build gold (full refresh)
-        if: ${{ github.event.inputs.full_load == 'true' && github.event.inputs.season == '' }}
-        working-directory: dbt
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-        run: |
-          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select 'gold.*' --target $TARGET --full-refresh
+          dbt run --select gold.* --target $TARGET

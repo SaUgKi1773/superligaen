@@ -1,16 +1,21 @@
--- Halftime goals can never exceed fulltime goals — physics, not an API choice.
--- Any row here means the score JSON was corrupted or misread during ingestion.
-SELECT
-    fixture_id,
-    goals_home,
-    goals_away,
-    score_ht_home,
-    score_ht_away
-FROM {{ ref('fixtures') }}
-WHERE status_short IN ('FT', 'AET', 'PEN')
-  AND score_ht_home IS NOT NULL
-  AND score_ht_away IS NOT NULL
-  AND (
-      score_ht_home > goals_home
-      OR score_ht_away > goals_away
-  )
+{{ config(severity='warn') }}
+-- Halftime goals can never exceed fulltime goals.
+-- Rewritten to use fixture_scores since the new silver model stores scores separately.
+-- Severity warn: a handful of fixtures have known Sportmonks score corruption where
+-- CURRENT does not equal 1ST_HALF + 2ND_HALF.
+WITH scores AS (
+    SELECT
+        fixture_id,
+        side,
+        MAX(CASE WHEN description = 'CURRENT'  THEN goals END) AS goals_ft,
+        MAX(CASE WHEN description = '1ST_HALF' THEN goals END) AS goals_ht
+    FROM {{ ref('fixture_scores') }}
+    GROUP BY fixture_id, side
+)
+SELECT s.fixture_id, s.side, s.goals_ht, s.goals_ft
+FROM scores s
+JOIN {{ ref('fixtures') }} f ON f.id = s.fixture_id
+WHERE f.state_developer_name IN ('FT', 'FT_PEN', 'AET')
+  AND s.goals_ht IS NOT NULL
+  AND s.goals_ft IS NOT NULL
+  AND s.goals_ht > s.goals_ft

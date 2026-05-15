@@ -1,35 +1,37 @@
-{{
-    config(
-        materialized='incremental',
-        incremental_strategy='delete+insert',
-        unique_key='fixture_id'
-    )
-}}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='id'
+) }}
 
-WITH src AS (
-    SELECT
-        e.fixture_id,
-        (f.raw_json->>'$.fixture.date')::TIMESTAMPTZ  AS kick_off,
-        (f.raw_json->>'$.league.id')::INTEGER          AS league_id,
-        (f.raw_json->>'$.league.season')::INTEGER      AS season,
-        (ev->>'$.time.elapsed')::INTEGER               AS time_elapsed,
-        (ev->>'$.time.extra')::INTEGER                 AS time_extra,
-        (ev->>'$.team.id')::INTEGER                    AS team_id,
-        ev->>'$.team.name'                             AS team_name,
-        ev->>'$.team.logo'                             AS team_logo,
-        (ev->>'$.player.id')::INTEGER                  AS player_id,
-        ev->>'$.player.name'                           AS player_name,
-        (ev->>'$.assist.id')::INTEGER                  AS assist_player_id,
-        ev->>'$.assist.name'                           AS assist_player_name,
-        ev->>'$.type'                                  AS event_type,
-        ev->>'$.detail'                                AS event_detail,
-        ev->>'$.comments'                              AS comments,
-        e.ingested_at
-    FROM {{ source('bronze', 'api_football__fixture_events') }} e
-    JOIN {{ source('bronze', 'api_football__fixtures') }} f USING (fixture_id),
-    UNNEST(e.raw_json::JSON[]) AS t(ev)
-)
-SELECT * FROM src
+SELECT
+    (event->>'id')::INTEGER              AS id,
+    f.id                                 AS fixture_id,
+    (event->>'period_id')::INTEGER       AS period_id,
+    (event->>'participant_id')::INTEGER  AS team_id,
+    (event->>'type_id')::INTEGER         AS type_id,
+    (event->>'player_id')::INTEGER       AS player_id,
+    (event->>'related_player_id')::INTEGER AS related_player_id,
+    event->>'player_name'                AS player_name,
+    event->>'related_player_name'        AS related_player_name,
+    event->>'section'                    AS section,
+    event->>'result'                     AS result,
+    event->>'info'                       AS info,
+    event->>'addition'                   AS addition,
+    (event->>'minute')::INTEGER          AS minute,
+    (event->>'extra_minute')::INTEGER    AS extra_minute,
+    (event->>'injured')::BOOLEAN         AS injured,
+    (event->>'on_bench')::BOOLEAN        AS on_bench,
+    (event->>'sub_type_id')::INTEGER     AS sub_type_id,
+    (event->>'sort_order')::INTEGER      AS sort_order,
+    (event->>'rescinded')::BOOLEAN       AS rescinded,
+    event->'type'->>'name'               AS type_name,
+    event->'type'->>'developer_name'     AS type_developer_name,
+    event->'participant'->>'name'        AS team_name,
+    f._ingested_at
+FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+unnest(json_transform(f.raw_json::VARCHAR, '{"events": ["JSON"]}').events) AS t(event)
+WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.events')) > 0
 {% if is_incremental() %}
-WHERE {{ fixture_filter('kick_off') }}
+AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
 {% endif %}

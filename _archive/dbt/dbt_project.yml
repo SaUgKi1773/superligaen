@@ -1,0 +1,20 @@
+name: superligaen
+version: '1.0.0'
+config-version: 2
+profile: superligaen
+
+model-paths: ['models']
+macro-paths: ['macros']
+
+vars:
+  lookback_days: 5
+  season: null
+
+models:
+  superligaen:
+    silver:
+      +schema: silver
+      +materialized: incremental
+      +incremental_strategy: delete+insert
+    gold:
+      +schema: gold

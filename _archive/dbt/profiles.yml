@@ -1,0 +1,11 @@
+superligaen:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "md:superligaen_dev"
+      schema: silver
+    prod:
+      type: duckdb
+      path: "md:superligaen"
+      schema: silver

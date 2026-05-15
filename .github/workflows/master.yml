@@ -9,18 +9,6 @@ on:
         description: "Set to 'true' to run a full historical load"
         required: false
         default: "false"
-      league:
-        description: "League ID (e.g. 119). Leave empty to load all leagues."
-        required: false
-        default: ""
-      season:
-        description: "Season year for full load (e.g. 2025). Leave empty to load all seasons."
-        required: false
-        default: ""
-      lookback:
-        description: "Days to look back for incremental runs (default: 3)"
-        required: false
-        default: "3"
       target_db:
         description: "Target MotherDuck database (e.g. superligaen). Leave empty to use default (superligaen)."
         required: false
@@ -28,42 +16,34 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Bronze — ingest raw API data
+  # Bronze — ingest raw API data from Sportmonks
   # ---------------------------------------------------------------------------
   ingest:
     name: Bronze ingestion
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6h max — covers one full season load
+    timeout-minutes: 360  # 6h max — covers a full load
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: uv pip install --system requests python-dotenv duckdb
 
-      - name: Run ingestion (incremental)
-        if: ${{ github.event.inputs.full_load != 'true' }}
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          TARGET_DB: ${{ github.event.inputs.target_db || 'superligaen' }}
-        run: python ingestion/run.py --lookback ${{ github.event.inputs.lookback || '3' }}
-
-      - name: Run ingestion (full load)
-        if: ${{ github.event.inputs.full_load == 'true' }}
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          TARGET_DB: ${{ github.event.inputs.target_db || 'superligaen' }}
+      - name: Run ingestion
+        working-directory: ingestion/sportmonks
         run: |
-          ARGS="--full-load"
-          [ -n "${{ github.event.inputs.league }}" ] && ARGS="$ARGS --league ${{ github.event.inputs.league }}"
-          [ -n "${{ github.event.inputs.season }}" ] && ARGS="$ARGS --season ${{ github.event.inputs.season }}"
-          python ingestion/run.py $ARGS
+          DB="md:${{ github.event.inputs.target_db || 'superligaen' }}"
+          if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
+            python run.py --mode full --db $DB
+          else
+            python run.py --mode incremental --db $DB
+          fi
+        env:
+          SPORTMONKS_API_KEY: ${{ secrets.SPORTMONKS_API_KEY }}
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
 
   # ---------------------------------------------------------------------------
   # Silver — transform bronze JSON into structured tables (dbt)
@@ -72,7 +52,7 @@ jobs:
     name: Silver transformation
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    needs: ingest  # only runs if ingest succeeds
+    needs: ingest
 
     steps:
       - uses: actions/checkout@v4
@@ -90,26 +70,24 @@ jobs:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: dbt deps
 
-      - name: Run silver (incremental)
-        if: ${{ github.event.inputs.full_load != 'true' }}
+      - name: Load seeds
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select silver.* --target $TARGET --vars '{"lookback_days": ${{ github.event.inputs.lookback || '3' }}}'
+          dbt seed --target $TARGET
 
-      - name: Run silver (full load)
-        if: ${{ github.event.inputs.full_load == 'true' }}
+      - name: Run silver
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          if [ -n "${{ github.event.inputs.season }}" ]; then
-            dbt run --select silver.* --target $TARGET --vars '{"season": ${{ github.event.inputs.season }}}'
-          else
+          if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
             dbt run --select silver.* --target $TARGET --full-refresh
+          else
+            dbt run --select silver.* --target $TARGET
           fi
 
   # ---------------------------------------------------------------------------
@@ -119,7 +97,7 @@ jobs:
     name: Gold transformation
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: transform  # only runs if silver succeeds
+    needs: transform
 
     steps:
       - uses: actions/checkout@v4
@@ -137,26 +115,16 @@ jobs:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: dbt deps
 
-      - name: Build gold (incremental)
-        if: ${{ github.event.inputs.full_load != 'true' }}
+      - name: Run gold
         working-directory: dbt
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         run: |
           TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          dbt run --select gold.* --target $TARGET --vars '{"lookback_days": ${{ github.event.inputs.lookback || '3' }}}'
-
-      - name: Build gold (full load)
-        if: ${{ github.event.inputs.full_load == 'true' }}
-        working-directory: dbt
-        env:
-          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-        run: |
-          TARGET=$([ "${{ github.event.inputs.target_db || 'superligaen' }}" = "superligaen" ] && echo "prod" || echo "dev")
-          if [ -n "${{ github.event.inputs.season }}" ]; then
-            dbt run --select gold.* --target $TARGET --vars '{"season": ${{ github.event.inputs.season }}}'
-          else
+          if [ "${{ github.event.inputs.full_load }}" = "true" ]; then
             dbt run --select gold.* --target $TARGET --full-refresh
+          else
+            dbt run --select gold.* --target $TARGET
           fi
 
   # ---------------------------------------------------------------------------

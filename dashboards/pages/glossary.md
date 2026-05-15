@@ -31,6 +31,8 @@ A reference for all metrics, abbreviations, and KPIs used across the dashboard.
   <div class="p-3"><div class="font-semibold text-sm">Win Rate (%)</div><div class="text-sm text-gray-500 mt-0.5">Percentage of matches won</div><div class="text-xs text-gray-400 mt-0.5">(Wins ÷ Matches Played) × 100</div></div>
   <div class="p-3"><div class="font-semibold text-sm">Clean Sheets</div><div class="text-sm text-gray-500 mt-0.5">Matches where the team conceded zero goals</div></div>
   <div class="p-3"><div class="font-semibold text-sm">Points Per Game</div><div class="text-sm text-gray-500 mt-0.5">Average points earned per match</div><div class="text-xs text-gray-400 mt-0.5">Total Points ÷ Matches Played</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Corner Kicks <span class="font-normal text-gray-400">(Corners)</span></div><div class="text-sm text-gray-500 mt-0.5">Number of corner kicks won by a team in a match</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Offsides</div><div class="text-sm text-gray-500 mt-0.5">Number of times a team was caught in an offside position during a match</div></div>
 </div>
 
 ---
@@ -45,20 +47,10 @@ A reference for all metrics, abbreviations, and KPIs used across the dashboard.
 
 ---
 
-## Advanced Metrics
-
-<div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
-  <div class="p-3"><div class="font-semibold text-sm">Expected Goals <span class="font-normal text-gray-400">(xG)</span></div><div class="text-sm text-gray-500 mt-0.5">A model-based estimate of how many goals a team was expected to score, based on the quality of chances created. Values above 1.0 per match indicate strong attacking play.</div><div class="text-xs text-gray-400 mt-0.5">Provided by api-football.com</div></div>
-  <div class="p-3"><div class="font-semibold text-sm">xG Overperformance <span class="font-normal text-gray-400">(xG OP)</span></div><div class="text-sm text-gray-500 mt-0.5">How many more (or fewer) goals a team scored compared to what their chances were worth. Positive = clinical finishing; negative = wasteful.</div><div class="text-xs text-gray-400 mt-0.5">Goals Scored − xG</div></div>
-  <div class="p-3"><div class="font-semibold text-sm">Average xG / Match <span class="font-normal text-gray-400">(Avg xG)</span></div><div class="text-sm text-gray-500 mt-0.5">Average expected goals per match</div><div class="text-xs text-gray-400 mt-0.5">Total xG ÷ Matches Played</div></div>
-</div>
-
----
-
 ## Passing & Possession
 
 <div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
-  <div class="p-3"><div class="font-semibold text-sm">Possession (%) <span class="font-normal text-gray-400">(Poss %)</span></div><div class="text-sm text-gray-500 mt-0.5">Share of total ball possession in a match</div><div class="text-xs text-gray-400 mt-0.5">Provided by api-football.com</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Possession (%) <span class="font-normal text-gray-400">(Poss %)</span></div><div class="text-sm text-gray-500 mt-0.5">Share of total ball possession in a match</div><div class="text-xs text-gray-400 mt-0.5">Provided by Sportmonks</div></div>
   <div class="p-3"><div class="font-semibold text-sm">Pass Accuracy (%) <span class="font-normal text-gray-400">(Pass Acc)</span></div><div class="text-sm text-gray-500 mt-0.5">Share of passes that reached a teammate</div><div class="text-xs text-gray-400 mt-0.5">(Accurate Passes ÷ Total Passes) × 100</div></div>
 </div>
 

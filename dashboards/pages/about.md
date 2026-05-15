@@ -16,7 +16,7 @@ That's how this project was born.
 
 A fully automated data pipeline that:
 
-- Ingests live match data from [api-football.com](https://www.api-football.com/) into a **MotherDuck** cloud data warehouse
+- Ingests live match data from [Sportmonks](https://www.sportmonks.com/) into a **MotherDuck** cloud data warehouse
 - Transforms raw JSON through **Bronze → Silver → Gold** layers using **dbt**
 - Serves analytics via this **Evidence.dev** dashboard, deployed on **Vercel**
 - Runs nightly via **GitHub Actions**

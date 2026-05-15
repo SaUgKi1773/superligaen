@@ -7,8 +7,11 @@ title: Standings
 
 
 ```sql seasons
-select distinct season from superligaen.mart_match_facts
-order by season desc
+select season from (
+  select season, max(is_current_season::int) as is_current
+  from superligaen.mart_match_facts
+  group by season
+) order by is_current desc, season desc
 ```
 
 <details class="mb-6 rounded-xl border border-blue-100 bg-blue-50">
@@ -37,9 +40,9 @@ order by season desc
   </div>
 </details>
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc">
-    <DropdownOption value="2025/26" valueLabel="2025/26"/>
-</Dropdown>
+{#key seasons[0]?.season}
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
+{/key}
 
 ```sql standings
 select
@@ -74,13 +77,13 @@ order by standings_type, pts desc, gd desc, gf desc
 ```sql championship
 select rank, team, gp, w, d, l, gf, ga, gd, pts
 from ${standings}
-where round_group = 'Championship Group'
+where round_group = 'Championship Round'
 ```
 
 ```sql relegation
 select rank, team, gp, w, d, l, gf, ga, gd, pts
 from ${standings}
-where round_group = 'Relegation Group'
+where round_group = 'Relegation Round'
 ```
 
 ```sql regular
@@ -119,8 +122,8 @@ where season = '${inputs.season.value}'
 group by team_name, standings_type
 order by
     case standings_type
-        when 'Championship Group' then 1
-        when 'Relegation Group'   then 2
+        when 'Championship Round' then 1
+        when 'Relegation Round'   then 2
         else                           3
     end,
     pts desc
@@ -130,7 +133,7 @@ order by
 
 {#if championship.length > 0}
 
-### 🏆 Championship Group
+### 🏆 Championship Round
 
 <div class="standings-table block md:hidden">
 <DataTable data={championship} rows=20>
@@ -163,7 +166,7 @@ order by
 
 {#if relegation.length > 0}
 
-### ⬇️ Relegation Group
+### ⬇️ Relegation Round
 
 <div class="standings-table block md:hidden">
 <DataTable data={relegation} rows=20>

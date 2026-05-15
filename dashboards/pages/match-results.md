@@ -5,13 +5,16 @@ title: Match Results
 ---
 
 ```sql seasons
-select distinct season from superligaen.mart_match_facts
-order by season desc
+select season from (
+  select season, max(is_current_season::int) as is_current
+  from superligaen.mart_match_facts
+  group by season
+) order by is_current desc, season desc
 ```
 
-<Dropdown data={seasons} name=season value=season label=season order="season desc">
-    <DropdownOption value="2025/26" valueLabel="2025/26"/>
-</Dropdown>
+{#key seasons[0]?.season}
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
+{/key}
 
 ```sql rounds
 select distinct cast(match_round_number as integer) as round_number
@@ -36,7 +39,6 @@ select
     score,
     sum(goals_scored)               as total_goals,
     sum(shots_on_goal)              as total_shots_on_goal,
-    round(sum(xg), 2)               as total_xg,
     sum(yellow_cards)               as total_yellow_cards,
     sum(red_cards)                  as total_red_cards,
     sum(corner_kicks)               as total_corners,
@@ -51,20 +53,18 @@ order by match_date desc
 
 ```sql round_kpis
 select
-    sum(total_goals)                    as total_goals,
-    round(sum(total_goals)::double / count(distinct match_id), 2)         as avg_goals_per_match,
-    round(sum(total_shots_on_goal)::double / count(distinct match_id), 1) as avg_shots_on_goal,
-    round(sum(total_xg), 2)             as total_xg
+    sum(total_goals)                                                                    as total_goals,
+    round(sum(total_goals)::double / count(distinct match_id), 2)                      as avg_goals_per_match,
+    round(sum(total_shots_on_goal)::double / count(distinct match_id), 1)              as avg_shots_on_goal
 from ${results}
 ```
 
 ## Match Results — {inputs.season.value}
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
   <div class="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center"><BigValue data={round_kpis} value=total_goals         title="Goals Scored"       /></div>
   <div class="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center"><BigValue data={round_kpis} value=avg_goals_per_match  title="Avg Goals / Match"  /></div>
   <div class="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center"><BigValue data={round_kpis} value=avg_shots_on_goal    title="Avg Shots on Goal"  /></div>
-  <div class="rounded-xl border border-gray-300 bg-gray-100 p-4 text-center"><BigValue data={round_kpis} value=total_xg             title="Total xG"           /></div>
 </div>
 
 <DataTable data={results} rows=20>
@@ -73,8 +73,7 @@ from ${results}
     <Column id=match_name          title="Match"          wrap=true />
     <Column id=score               title="Score"          align=center />
     <Column id=total_goals         title="Goals"          contentType=colorscale colorPalette={['white','#22c55e']} align=center />
-    <Column id=total_shots_on_goal title="Shots on Goal"  contentType=bar       colorPalette={['#6366f1']} />
-    <Column id=total_xg            title="xG"             contentType=colorscale colorPalette={['white','#3b82f6']} />
+    <Column id=total_shots_on_goal title="Shots on Goal"  contentType=bar        colorPalette={['#6366f1']} />
     <Column id=total_yellow_cards  title="YC"             contentType=colorscale colorPalette={['white','#eab308']} align=center />
     <Column id=total_red_cards     title="RC"             contentType=colorscale colorPalette={['white','#ef4444']} align=center />
     <Column id=total_corners       title="Corners"        contentType=colorscale colorPalette={['white','#a855f7']} align=center />
@@ -108,16 +107,12 @@ select
     max(score)                                                                   as score,
     max(case when team_side = 'Home' then goals_scored end)                      as home_goals,
     max(case when team_side = 'Away' then goals_scored end)                      as away_goals,
-    round(max(case when team_side = 'Home' then xg end)::double, 2)              as home_xg,
-    round(max(case when team_side = 'Away' then xg end)::double, 2)              as away_xg,
     max(case when team_side = 'Home' then shots_on_goal end)                     as home_sog,
     max(case when team_side = 'Away' then shots_on_goal end)                     as away_sog,
-    max(case when team_side = 'Home' then total_shots end)                       as home_shots,
-    max(case when team_side = 'Away' then total_shots end)                       as away_shots,
     max(case when team_side = 'Home' then possession_pct end)                    as home_possession,
     max(case when team_side = 'Away' then possession_pct end)                    as away_possession,
-    max(case when team_side = 'Home' then pass_accuracy end)                     as home_pass_accuracy,
-    max(case when team_side = 'Away' then pass_accuracy end)                     as away_pass_accuracy,
+    round(max(case when team_side = 'Home' then passes_accurate end)::double / nullif(max(case when team_side = 'Home' then total_passes end), 0) * 100, 1) as home_pass_accuracy,
+    round(max(case when team_side = 'Away' then passes_accurate end)::double / nullif(max(case when team_side = 'Away' then total_passes end), 0) * 100, 1) as away_pass_accuracy,
     max(case when team_side = 'Home' then corner_kicks end)                      as home_corners,
     max(case when team_side = 'Away' then corner_kicks end)                      as away_corners,
     max(case when team_side = 'Home' then fouls end)                             as home_fouls,
@@ -157,34 +152,12 @@ where match_name            = split_part('${inputs.match.value}', '|', 1)
 
   <div class="py-2 border-b border-gray-100">
     <div class="grid grid-cols-3 items-center text-center mb-1.5">
-      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_xg}</div>
-      <div class="text-gray-400 text-xs uppercase tracking-wide">xG</div>
-      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_xg}</div>
-    </div>
-    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
-      <div class="bg-blue-500" style="width:{(mc[0]?.home_xg ?? 0) + (mc[0]?.away_xg ?? 0) > 0 ? (mc[0]?.home_xg ?? 0) / ((mc[0]?.home_xg ?? 0) + (mc[0]?.away_xg ?? 0)) * 100 : 50}%"></div>
-    </div>
-  </div>
-
-  <div class="py-2 border-b border-gray-100">
-    <div class="grid grid-cols-3 items-center text-center mb-1.5">
       <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_sog}</div>
       <div class="text-gray-400 text-xs uppercase tracking-wide">Shots on Goal</div>
       <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_sog}</div>
     </div>
     <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
       <div class="bg-blue-500" style="width:{(mc[0]?.home_sog ?? 0) + (mc[0]?.away_sog ?? 0) > 0 ? (mc[0]?.home_sog ?? 0) / ((mc[0]?.home_sog ?? 0) + (mc[0]?.away_sog ?? 0)) * 100 : 50}%"></div>
-    </div>
-  </div>
-
-  <div class="py-2 border-b border-gray-100">
-    <div class="grid grid-cols-3 items-center text-center mb-1.5">
-      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_shots}</div>
-      <div class="text-gray-400 text-xs uppercase tracking-wide">Total Shots</div>
-      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_shots}</div>
-    </div>
-    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
-      <div class="bg-blue-500" style="width:{(mc[0]?.home_shots ?? 0) + (mc[0]?.away_shots ?? 0) > 0 ? (mc[0]?.home_shots ?? 0) / ((mc[0]?.home_shots ?? 0) + (mc[0]?.away_shots ?? 0)) * 100 : 50}%"></div>
     </div>
   </div>
 
@@ -223,28 +196,6 @@ where match_name            = split_part('${inputs.match.value}', '|', 1)
 
   <div class="py-2 border-b border-gray-100">
     <div class="grid grid-cols-3 items-center text-center mb-1.5">
-      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_fouls}</div>
-      <div class="text-gray-400 text-xs uppercase tracking-wide">Fouls</div>
-      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_fouls}</div>
-    </div>
-    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
-      <div class="bg-blue-500" style="width:{(mc[0]?.home_fouls ?? 0) + (mc[0]?.away_fouls ?? 0) > 0 ? (mc[0]?.home_fouls ?? 0) / ((mc[0]?.home_fouls ?? 0) + (mc[0]?.away_fouls ?? 0)) * 100 : 50}%"></div>
-    </div>
-  </div>
-
-  <div class="py-2 border-b border-gray-100">
-    <div class="grid grid-cols-3 items-center text-center mb-1.5">
-      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_offsides}</div>
-      <div class="text-gray-400 text-xs uppercase tracking-wide">Offsides</div>
-      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_offsides}</div>
-    </div>
-    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
-      <div class="bg-blue-500" style="width:{(mc[0]?.home_offsides ?? 0) + (mc[0]?.away_offsides ?? 0) > 0 ? (mc[0]?.home_offsides ?? 0) / ((mc[0]?.home_offsides ?? 0) + (mc[0]?.away_offsides ?? 0)) * 100 : 50}%"></div>
-    </div>
-  </div>
-
-  <div class="py-2 border-b border-gray-100">
-    <div class="grid grid-cols-3 items-center text-center mb-1.5">
       <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_yc}</div>
       <div class="text-gray-400 text-xs uppercase tracking-wide">Yellow Cards</div>
       <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_yc}</div>
@@ -265,7 +216,18 @@ where match_name            = split_part('${inputs.match.value}', '|', 1)
     </div>
   </div>
 
-  <div class="py-2">
+  <div class="py-2 border-b border-gray-100">
+    <div class="grid grid-cols-3 items-center text-center mb-1.5">
+      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_fouls}</div>
+      <div class="text-gray-400 text-xs uppercase tracking-wide">Fouls</div>
+      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_fouls}</div>
+    </div>
+    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
+      <div class="bg-blue-500" style="width:{(mc[0]?.home_fouls ?? 0) + (mc[0]?.away_fouls ?? 0) > 0 ? (mc[0]?.home_fouls ?? 0) / ((mc[0]?.home_fouls ?? 0) + (mc[0]?.away_fouls ?? 0)) * 100 : 50}%"></div>
+    </div>
+  </div>
+
+  <div class="py-2 border-b border-gray-100">
     <div class="grid grid-cols-3 items-center text-center mb-1.5">
       <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_saves}</div>
       <div class="text-gray-400 text-xs uppercase tracking-wide">Saves</div>
@@ -273,6 +235,17 @@ where match_name            = split_part('${inputs.match.value}', '|', 1)
     </div>
     <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
       <div class="bg-blue-500" style="width:{(mc[0]?.home_saves ?? 0) + (mc[0]?.away_saves ?? 0) > 0 ? (mc[0]?.home_saves ?? 0) / ((mc[0]?.home_saves ?? 0) + (mc[0]?.away_saves ?? 0)) * 100 : 50}%"></div>
+    </div>
+  </div>
+
+  <div class="py-2">
+    <div class="grid grid-cols-3 items-center text-center mb-1.5">
+      <div class="font-semibold text-lg text-blue-600">{mc[0]?.home_offsides}</div>
+      <div class="text-gray-400 text-xs uppercase tracking-wide">Offsides</div>
+      <div class="font-semibold text-lg text-orange-500">{mc[0]?.away_offsides}</div>
+    </div>
+    <div class="flex h-1 rounded-full overflow-hidden bg-orange-400">
+      <div class="bg-blue-500" style="width:{(mc[0]?.home_offsides ?? 0) + (mc[0]?.away_offsides ?? 0) > 0 ? (mc[0]?.home_offsides ?? 0) / ((mc[0]?.home_offsides ?? 0) + (mc[0]?.away_offsides ?? 0)) * 100 : 50}%"></div>
     </div>
   </div>
 

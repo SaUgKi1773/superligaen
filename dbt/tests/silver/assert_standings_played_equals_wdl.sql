@@ -1,18 +1,9 @@
--- Standings consistency: a team's played count must equal wins + draws + losses.
--- Any row returned here means the API sent internally inconsistent data.
-SELECT
-    season,
-    league_id,
-    team_id,
-    team_name,
-    played,
-    wins,
-    draws,
-    losses,
-    wins + draws + losses AS wdl_sum
+-- A team's played count must equal wins + draws + losses.
+SELECT team_id, team_name, season_id, overall_played, overall_won, overall_draw, overall_lost,
+       overall_won + overall_draw + overall_lost AS wdl_sum
 FROM {{ ref('standings') }}
-WHERE played IS NOT NULL
-  AND wins    IS NOT NULL
-  AND draws   IS NOT NULL
-  AND losses  IS NOT NULL
-  AND played != wins + draws + losses
+WHERE overall_played IS NOT NULL
+  AND overall_won    IS NOT NULL
+  AND overall_draw   IS NOT NULL
+  AND overall_lost   IS NOT NULL
+  AND overall_played != overall_won + overall_draw + overall_lost

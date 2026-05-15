@@ -19,23 +19,24 @@ select
     count(distinct team_name)   as total_teams,
     max(season)                 as season
 from superligaen.mart_match_facts
-where season = (select max(season) from superligaen.mart_match_facts where result in ('Win', 'Draw', 'Loss'))
+where is_current_season = true
   and result in ('Win', 'Draw', 'Loss')
 ```
 
 ```sql leader
-select team_name, pts
+select team_name, team_short_name, pts
 from (
     select
         team_name,
+        team_short_name,
         standings_type,
         sum(points_earned)                      as pts,
         sum(goals_scored) - sum(goals_conceded) as gd,
         sum(goals_scored)                       as gf
     from superligaen.mart_match_facts
-    where season = (select max(season) from superligaen.mart_match_facts where result in ('Win', 'Draw', 'Loss'))
+    where is_current_season = true
       and result in ('Win', 'Draw', 'Loss')
-    group by team_name, standings_type
+    group by team_name, team_short_name, standings_type
 )
 order by
     case standings_type
@@ -65,7 +66,7 @@ limit 1
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center"><BigValue data={leader}  value=team_name      title="Current Leader"  /></div>
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center"><BigValue data={leader}  value=team_short_name  title="Current Leader"  /></div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center"><BigValue data={kpis}    value=total_teams    title="Teams"           /></div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center"><BigValue data={kpis}    value=total_matches  title="Matches Played"  /></div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center"><BigValue data={kpis}    value=total_goals    title="Goals Scored"    /></div>

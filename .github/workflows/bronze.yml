@@ -1,0 +1,41 @@
+name: Bronze — Sportmonks Ingestion
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Load mode"
+        required: true
+        default: "incremental"
+        type: choice
+        options:
+          - incremental
+          - full-load
+
+jobs:
+  ingest:
+    name: Ingest → MotherDuck
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # full load across 16 seasons can take a while
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv pip install --system requests python-dotenv duckdb
+
+      - name: Run ingestion
+        working-directory: ingestion/sportmonks
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "full-load" ]; then
+            python run.py --mode full --db md:superligaen
+          else
+            python run.py --mode incremental --db md:superligaen
+          fi
+        env:
+          SPORTMONKS_API_KEY: ${{ secrets.SPORTMONKS_API_KEY }}
+          MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}

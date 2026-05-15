@@ -9,7 +9,7 @@ An end-to-end data engineering project tracking the Danish premier football leag
 ## Architecture
 
 ```
-api-football.com
+Sportmonks API
        │
        ▼
   Bronze layer        Raw JSON stored in MotherDuck (one table per endpoint)
@@ -19,7 +19,8 @@ api-football.com
        │
        ▼
   Gold layer          Kimball star schema  ─────────────────────────────┐
-                      (dims + fct_match_results)        (dbt)           │
+                      (dims + fct_team_matches                          │
+                           + fct_player_appearances)  (dbt)             │
                                                                         ▼
                                                              Evidence.dev dashboard
                                                              deployed on Vercel
@@ -33,8 +34,9 @@ The nightly GitHub Actions pipeline runs all three layers sequentially, then tri
 
 | Layer | Tool |
 |---|---|
+| Data source | Sportmonks REST API |
 | Data warehouse | MotherDuck (DuckDB cloud) |
-| Ingestion | Python (`ingestion/`) |
+| Ingestion | Python (`ingestion/sportmonks/`) |
 | Transformations | dbt-duckdb (`dbt/`) |
 | Orchestration | GitHub Actions (nightly + manual triggers) |
 | BI / Dashboard | Evidence.dev |
@@ -44,11 +46,12 @@ The nightly GitHub Actions pipeline runs all three layers sequentially, then tri
 
 ## Data model
 
-The gold layer follows **Kimball dimensional modelling**. Fact grain: **one row per team per match** (each fixture produces two rows — one for the home team, one for the away team).
+The gold layer follows **Kimball dimensional modelling**. Main fact grain: **one row per team per match** (`fct_team_matches` — each fixture produces two rows, one for each side). A second fact table `fct_player_appearances` holds individual player stats at match level.
 
 ```mermaid
 erDiagram
-    fct_match_results {
+    fct_team_matches {
+        int match_sk FK
         int date_sk FK
         int time_sk FK
         int team_sk FK
@@ -56,26 +59,38 @@ erDiagram
         int league_sk FK
         int stadium_sk FK
         int referee_sk FK
-        int match_sk FK
         int team_side_sk FK
         int match_result_sk FK
         int goals_scored
         int goals_conceded
-        int shots_on_goal
-        int total_shots
-        int shots_insidebox
-        int shots_outsidebox
+        int goals_ht_scored
+        int goals_ht_conceded
         decimal ball_possession_pct
-        int total_passes
-        int passes_accurate
-        int fouls
         int corner_kicks
-        int offsides
         int yellow_cards
         int red_cards
-        int goalkeeper_saves
-        decimal expected_goals
+        int saves
+        int fouls
+        int offsides
         int points_earned
+    }
+
+    fct_player_appearances {
+        int match_sk FK
+        int player_sk FK
+        int team_sk FK
+        int position_sk FK
+        int appearance_type_sk FK
+        int shots_on_target
+        int shots_off_target
+        int shots_total
+        int shots_blocked
+        int passes_total
+        int passes_accurate
+        int fouls_committed
+        int saves
+        int offsides
+        int minutes_played
     }
 
     dim_date {
@@ -88,7 +103,9 @@ erDiagram
         int week_number
         int day_of_week
         varchar day_name
-        varchar is_weekend
+        boolean is_weekend
+        varchar season
+        boolean is_current_season
     }
 
     dim_time {
@@ -103,9 +120,13 @@ erDiagram
         int team_id
         varchar team_name
         varchar team_code
+        varchar team_short_name
         varchar team_country
         int team_founded_year
         varchar team_logo
+        varchar team_venue_name
+        varchar team_venue_city
+        int team_venue_capacity
     }
 
     dim_opponent_team {
@@ -113,22 +134,23 @@ erDiagram
         int opponent_team_id
         varchar opponent_team_name
         varchar opponent_team_code
+        varchar opponent_team_short_name
         varchar opponent_team_country
-        int opponent_team_founded_year
         varchar opponent_team_logo
     }
 
     dim_match {
         int match_sk PK
         int match_id
-        int season
-        varchar match_round_name
         varchar match_round_type
+        varchar match_round_name
         int match_round_number
         varchar match_name
         varchar match_short_name
+        varchar match_type
         varchar match_status
         varchar match_result
+        varchar kick_off_time
     }
 
     dim_league {
@@ -155,8 +177,38 @@ erDiagram
 
     dim_referee {
         int referee_sk PK
-        varchar referee_name
+        int referee_id
+        varchar referee_common_name
+        varchar referee_firstname
+        varchar referee_lastname
+        varchar referee_display_name
         varchar referee_nationality
+    }
+
+    dim_player {
+        int player_sk PK
+        int player_id
+        varchar player_name
+        varchar player_nationality
+        date player_birth_date
+        varchar player_position
+        varchar player_detailed_position
+        int player_height
+        int player_weight
+    }
+
+    dim_position {
+        int position_sk PK
+        varchar position_name
+        varchar position_short_code
+        varchar position_group
+    }
+
+    dim_coach {
+        int coach_sk PK
+        int coach_id
+        varchar coach_display_name
+        varchar coach_nationality
     }
 
     dim_team_side {
@@ -169,19 +221,23 @@ erDiagram
         varchar match_result
     }
 
-    fct_match_results }o--|| dim_date : "date_sk"
-    fct_match_results }o--|| dim_time : "time_sk"
-    fct_match_results }o--|| dim_team : "team_sk"
-    fct_match_results }o--|| dim_opponent_team : "opponent_team_sk"
-    fct_match_results }o--|| dim_match : "match_sk"
-    fct_match_results }o--|| dim_league : "league_sk"
-    fct_match_results }o--|| dim_stadium : "stadium_sk"
-    fct_match_results }o--|| dim_referee : "referee_sk"
-    fct_match_results }o--|| dim_team_side : "team_side_sk"
-    fct_match_results }o--|| dim_match_result : "match_result_sk"
+    fct_team_matches }o--|| dim_date : "date_sk"
+    fct_team_matches }o--|| dim_time : "time_sk"
+    fct_team_matches }o--|| dim_team : "team_sk"
+    fct_team_matches }o--|| dim_opponent_team : "opponent_team_sk"
+    fct_team_matches }o--|| dim_match : "match_sk"
+    fct_team_matches }o--|| dim_league : "league_sk"
+    fct_team_matches }o--|| dim_stadium : "stadium_sk"
+    fct_team_matches }o--|| dim_referee : "referee_sk"
+    fct_team_matches }o--|| dim_team_side : "team_side_sk"
+    fct_team_matches }o--|| dim_match_result : "match_result_sk"
+    fct_player_appearances }o--|| dim_match : "match_sk"
+    fct_player_appearances }o--|| dim_player : "player_sk"
+    fct_player_appearances }o--|| dim_team : "team_sk"
+    fct_player_appearances }o--|| dim_position : "position_sk"
 ```
 
-All dimension surrogate keys are **stable across runs** — new records get new SKs, existing records keep theirs. Sentinel rows (`-1 Unknown`, `-2 Not Applicable`) handle missing lookups.
+All dimension surrogate keys are **stable across runs** — new records get new SKs, existing records keep theirs. Sentinel rows (`-1 Unknown`, `-2 Not Applicable`) handle missing lookups, with all VARCHAR attributes filled with descriptive defaults (e.g. `'Unknown Stadium Country'`).
 
 ---
 
@@ -191,7 +247,7 @@ All dimension surrogate keys are **stable across runs** — new records get new 
 |---|---|
 | **Home** | Season KPIs, current leader, navigation |
 | **Standings** | Championship, Relegation & Regular Season tables |
-| **Match Results** | Full match history, scorelines, Goals vs xG by round |
+| **Match Results** | Full match history, scorelines and analytics by round |
 | **Upcoming Fixtures** | Next fixtures with head-to-head history and last-5 form guide |
 | **League Analytics** | Cross-team benchmarks, rankings and league-wide trends |
 | **Team Analytics** | Deep-dive per-team KPIs, form, shooting, possession, discipline |
@@ -204,20 +260,24 @@ All dimension surrogate keys are **stable across runs** — new records get new 
 
 ```
 .
-├── ingestion/                  # Bronze: pull from api-football.com → MotherDuck
-│   ├── run.py                  # Ingestion runner (incremental + full load)
-│   ├── api.py                  # API client
-│   ├── db.py                   # MotherDuck connection
-│   ├── config.py               # Config and env vars
-│   └── ingest_*.py             # Per-entity ingestion scripts
+├── ingestion/
+│   └── sportmonks/             # Bronze: pull from Sportmonks API → MotherDuck
+│       ├── run.py              # Ingestion runner (incremental + full load)
+│       ├── engine.py           # Metadata-driven fetch engine
+│       ├── api.py              # Sportmonks API client
+│       ├── db.py               # MotherDuck connection
+│       └── config.py           # Endpoint manifest + env vars
 │
 ├── dbt/                        # Silver + Gold transformations (dbt-duckdb)
 │   ├── models/
-│   │   ├── silver/             # 18 models: bronze JSON → structured tables
+│   │   ├── silver/             # 37 models: bronze JSON → structured tables
 │   │   └── gold/
-│   │       ├── dims/           # 10 dim_* models (Kimball dims)
-│   │       └── fct_match_results.sql
-│   ├── macros/                 # fixture_filter(), season_filter(), generate_schema_name()
+│   │       ├── dims/           # 15 dim_* models (Kimball dims)
+│   │       ├── fct_team_matches.sql
+│   │       └── fct_player_appearances.sql
+│   ├── seeds/                  # team_names.csv (display names + codes)
+│   ├── tests/                  # Custom SQL DQ assertions
+│   ├── macros/
 │   └── dbt_project.yml
 │
 ├── dashboards/                 # Evidence.dev BI app
@@ -225,16 +285,17 @@ All dimension surrogate keys are **stable across runs** — new records get new 
 │   └── sources/superligaen/    # SQL sources queried at build time
 │
 ├── scripts/
-│   └── sync_dev_db.py          # Copies one season from superligaen → superligaen_dev
+│   ├── push_to_prod.py         # Push local DuckDB → MotherDuck (schema-selective)
+│   └── pull_from_prod.py       # Pull MotherDuck → local DuckDB
 │
 ├── .github/workflows/
-│   ├── master.yml              # Nightly: bronze → silver (dbt) → gold (dbt) → deploy
+│   ├── master.yml              # Nightly: bronze → silver → gold → DQ → deploy
 │   ├── ci.yml                  # PR validation: Python syntax + dbt compile
-│   ├── ingest.yml              # Manual bronze-only run
-│   ├── transform.yml           # Manual silver-only run (dbt)
+│   ├── bronze.yml              # Manual bronze-only run
+│   ├── silver.yml              # Manual silver-only run (dbt)
 │   ├── gold.yml                # Manual gold-only run (dbt)
-│   ├── vercel.yml              # Manual Vercel deploy trigger
-│   └── sync-dev-db.yml         # Manual prod → dev database sync
+│   ├── dq.yml                  # Manual DQ test run
+│   └── vercel.yml              # Manual Vercel deploy trigger
 │
 └── requirements.txt
 ```
@@ -245,8 +306,10 @@ All dimension surrogate keys are **stable across runs** — new records get new 
 
 | Environment | MotherDuck database | dbt target | Triggered by |
 |---|---|---|---|
-| Dev | `superligaen_dev` | `dev` | Local / feature branches |
+| Dev | `superligaen_dev` (local DuckDB) | `dev` | Local / feature branches |
 | Prod | `superligaen` | `prod` | GitHub Actions (`main`) |
+
+Dev runs against a local `superligaen_dev.duckdb` file. Use `scripts/push_to_prod.py` to push local data to MotherDuck dev for dashboard testing.
 
 ---
 
@@ -264,20 +327,23 @@ pip install -r requirements.txt
 
 # 3. Configure environment
 cp .env.example .env
-# Fill in MOTHERDUCK_TOKEN and API_FOOTBALL_KEY
+# Fill in MOTHERDUCK_TOKEN and SPORTMONKS_API_KEY
 
-# 4. Run layers against dev
-python ingestion/run.py
+# 4. Run layers against local dev
+python ingestion/sportmonks/run.py
 cd dbt
+dbt seed --target dev
 dbt run --select silver.* --target dev
 dbt run --select gold.* --target dev
 
-# 5. Run the dashboard locally
-cd ../dashboards
-# Write the MotherDuck token for Evidence
-echo "token: $(echo -n "$MOTHERDUCK_TOKEN" | base64)" > sources/superligaen/connection.options.yaml
+# 5. Push to MotherDuck dev for dashboard testing
+cd ..
+python scripts/push_to_prod.py --db superligaen_dev --schema silver gold
+
+# 6. Run the dashboard locally
+cd dashboards
 npm install
-npm run sources
+npm run sources   # regenerates parquet cache from MotherDuck
 npm run dev
 # → http://localhost:3000
 ```
@@ -290,4 +356,4 @@ npm run dev
 |---|---|
 | `MOTHERDUCK_TOKEN` | MotherDuck service token (read-write) |
 | `MOTHERDUCK_TOKEN_READONLY` | MotherDuck read-only token (dashboard build) |
-| `API_FOOTBALL_KEY` | api-football.com API key |
+| `SPORTMONKS_API_KEY` | Sportmonks API key |

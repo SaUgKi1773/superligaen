@@ -3,9 +3,11 @@ superligaen:
   outputs:
     dev:
       type: duckdb
-      path: "md:superligaen_dev"
+      path: "{{ env_var('DUCKDB_PATH', '../superligaen_dev.duckdb') }}"
       schema: silver
+      settings:
+        preserve_insertion_order: false
     prod:
       type: duckdb
-      path: "md:superligaen"
+      path: "md:superligaen?motherduck_token={{ env_var('MOTHERDUCK_TOKEN') }}"
       schema: silver

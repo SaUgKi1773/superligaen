@@ -22,11 +22,16 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 dbt/.user.yml
+logs/
 
 # Evidence.dev
 dashboards/.evidence/
 dashboards/build/
 dashboards/node_modules/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
 
 # OS
 .DS_Store

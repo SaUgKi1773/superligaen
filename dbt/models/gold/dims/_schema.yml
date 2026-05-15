@@ -1,0 +1,132 @@
+version: 2
+
+models:
+  - name: dim_team
+    columns:
+      - name: team_sk
+        tests: [not_null, unique]
+      - name: team_id
+        tests:
+          - not_null: {where: "team_sk > 0"}
+          - unique:   {where: "team_sk > 0"}
+      - name: team_name
+        tests: [not_null]
+      - name: team_code
+        tests:
+          - not_null: {where: "team_sk > 0"}
+      - name: team_short_name
+        tests:
+          - not_null: {where: "team_sk > 0"}
+
+  - name: dim_opponent_team
+    columns:
+      - name: opponent_team_sk
+        tests: [not_null, unique]
+      - name: opponent_team_name
+        tests: [not_null]
+
+  - name: dim_match
+    columns:
+      - name: match_sk
+        tests: [not_null, unique]
+      - name: match_id
+        tests:
+          - not_null: {where: "match_sk > 0"}
+          - unique:   {where: "match_sk > 0"}
+      - name: match_name
+        tests:
+          - not_null: {where: "match_sk > 0"}
+
+  - name: dim_player
+    columns:
+      - name: player_sk
+        tests: [not_null, unique]
+      - name: player_id
+        tests:
+          - not_null: {where: "player_sk > 0"}
+          - unique:   {where: "player_sk > 0"}
+
+  - name: dim_referee
+    columns:
+      - name: referee_sk
+        tests: [not_null, unique]
+      - name: referee_id
+        tests:
+          - not_null: {where: "referee_sk > 0"}
+          - unique:   {where: "referee_sk > 0"}
+
+  - name: dim_coach
+    columns:
+      - name: coach_sk
+        tests: [not_null, unique]
+      - name: coach_id
+        tests:
+          - not_null: {where: "coach_sk > 0"}
+          - unique:   {where: "coach_sk > 0"}
+
+  - name: dim_stadium
+    columns:
+      - name: stadium_sk
+        tests: [not_null, unique]
+      - name: stadium_id
+        tests:
+          - not_null: {where: "stadium_sk > 0"}
+          - unique:   {where: "stadium_sk > 0"}
+
+  - name: dim_league
+    columns:
+      - name: league_sk
+        tests: [not_null, unique]
+      - name: league_id
+        tests:
+          - not_null: {where: "league_sk > 0"}
+          - unique:   {where: "league_sk > 0"}
+
+  - name: dim_formation
+    columns:
+      - name: formation_sk
+        tests: [not_null, unique]
+
+  - name: dim_position
+    columns:
+      - name: position_sk
+        tests: [not_null, unique]
+      - name: position_name
+        tests: [not_null, unique]
+
+  - name: dim_appearance_type
+    columns:
+      - name: appearance_type_sk
+        tests: [not_null, unique]
+
+  - name: dim_match_result
+    columns:
+      - name: match_result_sk
+        tests: [not_null, unique]
+      - name: match_result
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Win', 'Draw', 'Loss', 'Pending', 'Unknown Match Result', 'Not Applicable Match Result']
+
+  - name: dim_team_side
+    columns:
+      - name: team_side_sk
+        tests: [not_null, unique]
+      - name: team_side
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Home', 'Away', 'Unknown Team Side', 'Not Applicable Team Side']
+
+  - name: dim_date
+    columns:
+      - name: date_sk
+        tests: [not_null, unique]
+      - name: date
+        tests: [not_null, unique]
+
+  - name: dim_time
+    columns:
+      - name: time_sk
+        tests: [not_null, unique]
