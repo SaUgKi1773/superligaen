@@ -5,8 +5,8 @@ Table categories and their delete strategy
 -------------------------------------------
 Global    : DELETE FROM table (truncate)      — types, states, tv_stations, league,
                                                 seasons, players, rivals
-Seasonal  : DELETE WHERE _season_id = ?       — stages, rounds, teams, venues,
-                                                referees, standings, topscorers,
+Seasonal  : DELETE WHERE _season_id = ?       — stages, rounds, teams, squads,
+                                                venues, referees, standings, topscorers,
                                                 stage_topscorers, stage_statistics,
                                                 round_statistics
 Date-win  : DELETE WHERE _fixture_date BETWEEN — transfers, fixtures
@@ -44,6 +44,7 @@ SEASONAL_TABLES = [
     "sportmonks__stages",
     "sportmonks__rounds",
     "sportmonks__teams",
+    "sportmonks__squads",
     "sportmonks__venues",
     "sportmonks__referees",
     "sportmonks__standings",

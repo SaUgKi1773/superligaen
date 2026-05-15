@@ -238,6 +238,37 @@ def _handle_round_based(conn, entry: dict, seasons: list, ctx: _Context) -> int:
     return total
 
 
+def _handle_season_team_based(conn, entry: dict, seasons: list, ctx: _Context) -> int:
+    """
+    Iterate each (season, team) pair and call the endpoint.
+    Teams are sourced from ctx.team_map, which is populated by the season_based
+    teams entry earlier in the manifest.  Deduplicates within each season.
+    """
+    total = 0
+    for season in seasons:
+        sid = season["id"]
+        teams = ctx.team_map.get(sid, [])
+        if not teams:
+            log.warning("%-46s %-12s no teams in context — skipping", entry["table"] + ":", season["name"])
+            continue
+        delete_by_season(conn, entry["table"], sid)
+        rows, seen = [], set()
+        for team in teams:
+            tid = team["id"]
+            for r in get_paginated(
+                entry["path"].format(season_id=sid, team_id=tid),
+                _params(entry),
+                _base(entry),
+            ):
+                if r["id"] not in seen:
+                    seen.add(r["id"])
+                    rows.append((r["id"], json.dumps(r), sid, None))
+        insert_batch(conn, entry["table"], rows)
+        log.info("%-46s %-12s %d rows (%d teams)", entry["table"] + ":", season["name"], len(rows), len(teams))
+        total += len(rows)
+    return total
+
+
 def _handle_team_based(conn, entry: dict, ctx: _Context) -> int:
     """Iterate all unique team IDs across every season; deduplicates entities."""
     team_ids = ctx.all_team_ids
@@ -354,6 +385,9 @@ def _dispatch(conn, entry: dict, ctx: _Context, mode: str) -> None:
             # team_based entries (coaches, transfers, rivals, h2h) cover all
             # historical teams even when running in incremental mode.
             ctx.all_team_ids = _resolve_all_team_ids(conn, ctx.team_map)
+
+    elif strategy == "season_team_based":
+        _handle_season_team_based(conn, entry, seasons, ctx)
 
     elif strategy == "stage_based":
         _handle_stage_based(conn, entry, seasons, ctx)
