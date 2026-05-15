@@ -228,6 +228,7 @@ from (
     y=home_win_pct
     title="Home Win Rate % by Surface"
     yAxisTitle="Home Win %"
+    yFmt='0.0'
     colorPalette={['#22c55e','#6366f1','#f59e0b']}
 />
 
@@ -277,6 +278,7 @@ from (
     y=home_win_pct
     title="Home Win Rate by Stadium — {inputs.season.value}"
     yAxisTitle="Home Win %"
+    yFmt='0.0'
     sort=true
     swapXY=true
     colorPalette={['#3b82f6']}

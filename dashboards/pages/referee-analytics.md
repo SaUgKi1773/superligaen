@@ -198,6 +198,7 @@ order by season asc
     y=home_yc_pct
     title="% of Yellow Cards Given to Home Team"
     yAxisTitle="Home YC %"
+    yFmt='0.0'
     colorPalette={['#6366f1']}
     swapXY=true
     sort=true

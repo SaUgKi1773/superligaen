@@ -504,6 +504,7 @@ order by min(possession_pct)
     title="Home Win % & Draw % — Historical"
     xAxisTitle="Season"
     yAxisTitle="%"
+    yFmt='0.0'
     colorPalette={['#3b82f6','#eab308']}
     sort=false
     chartAreaHeight=220
