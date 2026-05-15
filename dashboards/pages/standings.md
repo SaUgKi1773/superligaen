@@ -112,10 +112,11 @@ from (
 ```sql all_teams
 select
     team_name      as team,
-    sum(points_earned)                      as pts,
-    sum(goals_scored)                       as gf,
-    sum(goals_conceded)                     as ga,
-    standings_type                          as round_group
+    sum(points_earned)                                as pts,
+    sum(case when result = 'Win'  then 1 else 0 end)  as w,
+    sum(case when result = 'Draw' then 1 else 0 end)  as d,
+    sum(case when result = 'Loss' then 1 else 0 end)  as l,
+    standings_type                                    as round_group
 from superligaen.mart_match_facts
 where season = '${inputs.season.value}'
   and result in ('Win', 'Draw', 'Loss')
@@ -247,11 +248,12 @@ order by
 <BarChart
     data={all_teams}
     x=team
-    y={['gf','ga']}
-    title="Goals For vs Goals Against — {inputs.season.label}"
-    yAxisTitle="Goals"
+    y={['w','d','l']}
+    title="Wins, Draws & Losses by Team — {inputs.season.label}"
+    yAxisTitle="Matches"
     xAxisTitle="Team"
     sort=false
     swapXY=true
-    colorPalette={['#22c55e','#ef4444']}
+    type=stacked
+    colorPalette={['#22c55e','#eab308','#ef4444']}
 />
