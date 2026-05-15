@@ -1,4 +1,4 @@
-name: Bronze — Sportmonks Ingestion
+name: Bronze Ingestion
 
 on:
   workflow_dispatch:
