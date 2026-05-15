@@ -161,11 +161,11 @@ from (
     long=lon
     size=total_goals_scaled
     value=surface_code
-    name=stadium_name
+    pointName=stadium_name
     tooltipType=click
     colorPalette={['#22c55e','#6366f1','#f59e0b']}
     title="Superligaen Stadiums — {inputs.season.value}"
-    tooltipColumns={[{id: 'stadium_name', title: 'Stadium'}, {id: 'stadium_surface', title: 'Surface'}, {id: 'total_goals', title: 'Total Goals'}, {id: 'goals_per_match', title: 'Goals/Match'}, {id: 'home_win_pct', title: 'Home Win %', fmt: '0.0"%"'}]}
+    tooltip={[{id: 'stadium_name', showColumnName: false, valueClass: 'font-bold text-sm'}, {id: 'stadium_surface'}, {id: 'total_goals'}, {id: 'goals_per_match'}]}
 />
 
 ---
@@ -200,7 +200,7 @@ from (
           <div class="text-xs text-gray-400 mt-1">Home MP</div>
         </div>
       </div>
-      <div class="mt-3 text-center text-xs text-gray-400">{s.stadium_surface} · Cap. {s.stadium_capacity?.toLocaleString?.() ?? s.stadium_capacity}</div>
+      <div class="mt-3 text-center text-xs text-gray-400">{s.stadium_surface} · Cap. {s.stadium_capacity}</div>
     </div>
   {/each}
 </div>
