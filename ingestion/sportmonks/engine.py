@@ -272,7 +272,12 @@ def _fetch_date_window(conn, entry: dict, from_date: str, to_date: str) -> int:
             _base(entry),
         )
     except requests.HTTPError as exc:
-        if exc.response is not None and exc.response.status_code == 400:
+        if exc.response is not None and exc.response.status_code in (400, 422):
+            # 400: paged past last page (normal stop signal)
+            # 422: API rejects the date range (e.g. transfers endpoint has limited history)
+            if exc.response.status_code == 422:
+                log.warning("%-46s %s → %s  skipped (422 — date range not supported by API)",
+                            entry["table"] + ":", from_date, to_date)
             return 0
         raise
 
