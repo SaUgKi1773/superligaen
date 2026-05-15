@@ -149,7 +149,9 @@ where season = '${inputs.season.value}'
 order by player_name
 ```
 
+{#key `${inputs.season.value}|${inputs.team.value}`}
 <Dropdown data={all_players} name=player value=player_name label=player_name defaultValue={all_players[0]?.player_name} />
+{/key}
 
 ```sql player_season_kpis
 select
