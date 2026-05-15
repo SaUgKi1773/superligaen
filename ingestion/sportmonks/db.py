@@ -120,6 +120,9 @@ def delete_by_date(conn: duckdb.DuckDBPyConnection, table: str,
 
 # ── Insert helpers ────────────────────────────────────────────────────────────
 
+_INSERT_CHUNK = 500  # rows per INSERT statement; keeps parameter count well under DuckDB's 65535 limit
+
+
 def insert_batch(
     conn: duckdb.DuckDBPyConnection,
     table: str,
@@ -129,8 +132,15 @@ def insert_batch(
         return
     now = datetime.now(timezone.utc)
     rows_with_ts = [(*r, now) for r in rows]
-    conn.executemany(
-        f"INSERT INTO bronze.{table} (id, raw_json, _season_id, _fixture_date, _ingested_at) "
-        f"VALUES (?, ?, ?, ?, ?)",
-        rows_with_ts,
-    )
+    # Single multi-row INSERT per chunk instead of executemany (one round trip per row).
+    # Reduces MotherDuck latency from O(n) network round trips to O(n/chunk).
+    for i in range(0, len(rows_with_ts), _INSERT_CHUNK):
+        chunk = rows_with_ts[i : i + _INSERT_CHUNK]
+        placeholders = ",".join(["(?,?,?,?,?)"] * len(chunk))
+        flat = [v for row in chunk for v in row]
+        conn.execute(
+            f"INSERT INTO bronze.{table} "
+            f"(id, raw_json, _season_id, _fixture_date, _ingested_at) "
+            f"VALUES {placeholders}",
+            flat,
+        )
