@@ -34,7 +34,7 @@ participants_pivot AS (
     GROUP BY fixture_id
 ),
 name_map AS (
-    SELECT team_id, display_name, short_name
+    SELECT team_id, display_name, team_short_name AS short_name
     FROM {{ ref('team_names') }}
 ),
 scores_pivot AS (
