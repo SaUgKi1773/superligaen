@@ -5,6 +5,14 @@
 ) }}
 
 -- Timeline events: shots on target (569), shots off target (570), corners (126), offsides (1514) by minute.
+WITH src AS MATERIALIZED (
+    SELECT *
+    FROM {{ source('bronze', 'sportmonks__fixtures') }}
+    {% if is_incremental() %}
+    WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+    {% endif %}
+)
+
 SELECT
     (tl->>'id')::INTEGER             AS id,
     f.id                             AS fixture_id,
@@ -17,9 +25,6 @@ SELECT
     (tl->>'extra_minute')::INTEGER   AS extra_minute,
     (tl->>'sort_order')::INTEGER     AS sort_order,
     f._ingested_at
-FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+FROM src AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"timeline": ["JSON"]}').timeline) AS t(tl)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.timeline')) > 0
-{% if is_incremental() %}
-AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
-{% endif %}

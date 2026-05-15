@@ -4,6 +4,17 @@
     unique_key='id'
 ) }}
 
+-- Pre-filter to the incremental window BEFORE unnesting.
+-- Without this, DuckDB unnests all 3000+ historical fixture rows before applying
+-- the _ingested_at filter, blowing past MotherDuck Pulse's 953 MB memory cap.
+WITH src AS MATERIALIZED (
+    SELECT *
+    FROM {{ source('bronze', 'sportmonks__fixtures') }}
+    {% if is_incremental() %}
+    WHERE _ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
+    {% endif %}
+)
+
 SELECT
     (event->>'id')::INTEGER              AS id,
     f.id                                 AS fixture_id,
@@ -29,9 +40,6 @@ SELECT
     event->'type'->>'developer_name'     AS type_developer_name,
     event->'participant'->>'name'        AS team_name,
     f._ingested_at
-FROM {{ source('bronze', 'sportmonks__fixtures') }} AS f,
+FROM src AS f,
 unnest(json_transform(f.raw_json::VARCHAR, '{"events": ["JSON"]}').events) AS t(event)
 WHERE json_array_length(json_extract(f.raw_json::VARCHAR, '$.events')) > 0
-{% if is_incremental() %}
-AND f._ingested_at > (SELECT MAX(_ingested_at) FROM {{ this }})
-{% endif %}
