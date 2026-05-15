@@ -1,0 +1,81 @@
+SELECT
+    d.date                                                AS match_date,
+    d.season,
+    d.is_current_season,
+    m.match_id,
+    m.match_name,
+    m.match_short_name,
+    m.match_round_name,
+    m.match_round_number,
+    m.match_status,
+    p.player_id,
+    p.player_name,
+    p.player_nationality,
+    p.player_birth_date,
+    p.player_height,
+    p.player_weight,
+    p.player_photo,
+    p.player_position,
+    p.player_detailed_position,
+    t.team_name,
+    t.team_short_name,
+    ot.opponent_team_name,
+    r.match_result                                        AS result,
+    ts.team_side,
+    ref.referee_common_name                               AS referee_name,
+    st.stadium_name,
+    at_dim.appearance_type,
+    f.minutes_played,
+    f.goals_scored,
+    f.own_goals,
+    f.assists,
+    f.shots_total,
+    f.shots_on_target,
+    f.shots_off_target,
+    f.shots_blocked,
+    f.woodwork_hits,
+    f.big_chances_created,
+    f.big_chances_missed,
+    f.chances_created,
+    f.passes_total,
+    f.passes_accurate,
+    f.key_passes,
+    f.crosses_total,
+    f.crosses_accurate,
+    f.tackles,
+    f.tackles_won,
+    f.clearances,
+    f.interceptions,
+    f.aerials_won,
+    f.aerials_lost,
+    f.blocks,
+    f.duels_total,
+    f.duels_won,
+    f.dribbles_attempts,
+    f.dribbles_completed,
+    f.fouls_committed,
+    f.fouls_drawn,
+    f.yellow_cards,
+    f.yellow_red_cards,
+    f.red_cards,
+    f.offsides,
+    f.penalty_scored,
+    f.penalty_missed,
+    f.goals_conceded,
+    f.saves,
+    f.saves_inside_box,
+    f.errors_leading_to_goal,
+    f.rating
+FROM superligaen.gold.fct_player_appearances  f
+JOIN superligaen.gold.dim_date                d    ON d.date_sk           = f.date_sk
+JOIN superligaen.gold.dim_match               m    ON m.match_sk          = f.match_sk
+JOIN superligaen.gold.dim_player              p    ON p.player_sk         = f.player_sk
+JOIN superligaen.gold.dim_team                t    ON t.team_sk           = f.team_sk
+JOIN superligaen.gold.dim_opponent_team       ot   ON ot.opponent_team_sk = f.opponent_team_sk
+JOIN superligaen.gold.dim_match_result        r    ON r.match_result_sk   = f.match_result_sk
+JOIN superligaen.gold.dim_team_side           ts   ON ts.team_side_sk     = f.team_side_sk
+JOIN superligaen.gold.dim_referee             ref  ON ref.referee_sk      = f.referee_sk
+JOIN superligaen.gold.dim_stadium             st   ON st.stadium_sk       = f.stadium_sk
+JOIN superligaen.gold.dim_appearance_type     at_dim ON at_dim.appearance_type_sk = f.appearance_type_sk
+WHERE f.player_sk > 0
+  AND f.match_result_sk > 0

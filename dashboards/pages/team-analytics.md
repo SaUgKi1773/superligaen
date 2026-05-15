@@ -15,7 +15,8 @@ select season from (
 
 ```sql teams
 select distinct team_name as team from superligaen.mart_match_facts
-where result in ('Win', 'Draw', 'Loss')
+where season = '${inputs.season.value}'
+  and result in ('Win', 'Draw', 'Loss')
 order by team_name
 ```
 
@@ -23,7 +24,9 @@ order by team_name
 <Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
 {/key}
 
+{#key inputs.season.value}
 <Dropdown data={teams} name=team value=team label=team defaultValue={teams[0]?.team} />
+{/key}
 
 ```sql kpis
 select
