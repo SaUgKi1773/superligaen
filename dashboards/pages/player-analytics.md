@@ -34,13 +34,72 @@ where season = '${inputs.season.value}'
 order by team_name
 ```
 
-```sql players_in_team
-select distinct player_name
+```sql positions
+select distinct player_position
 from superligaen.mart_player_facts
 where season = '${inputs.season.value}'
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
-order by player_name
+  and player_position is not null
+order by player_position
+```
+
+```sql players_in_team
+select
+    player_name,
+    row_number() over (order by sum(goals_scored) desc) as sort_order
+from superligaen.mart_player_facts
+where season = '${inputs.season.value}'
+  and team_name = '${inputs.team.value}'
+  and player_position in ${inputs.position.value}
+  and result in ('Win', 'Draw', 'Loss')
+group by player_name
+```
+
+
+```sql top_players
+with base as (
+    select
+        player_name,
+        player_photo,
+        player_position,
+        count(distinct match_id)                        as matches,
+        sum(goals_scored)                               as goals,
+        sum(assists)                                    as assists,
+        sum(dribbles_completed)                         as dribbles,
+        sum(tackles) + sum(interceptions)               as defensive_actions,
+        sum(crosses_total)                              as crosses,
+        sum(passes_accurate)                            as passes
+    from superligaen.mart_player_facts
+    where season = '${inputs.season.value}'
+      and team_name = '${inputs.team.value}'
+      and result in ('Win', 'Draw', 'Loss')
+    group by player_name, player_photo, player_position
+    having count(distinct match_id) >= 3
+)
+select category, player_name, player_photo, player_position, stat_value, stat_label
+from (
+    select 'Top Scorer'   as category, player_name, player_photo, player_position, goals::int             as stat_value, 'Goals'        as stat_label, row_number() over (order by goals             desc) as rn from base
+    union all
+    select 'Top Assister',              player_name, player_photo, player_position, assists::int,              'Assists',      row_number() over (order by assists           desc) from base
+    union all
+    select 'Top Dribbler',              player_name, player_photo, player_position, dribbles::int,             'Dribbles',     row_number() over (order by dribbles          desc) from base
+    union all
+    select 'Top Defender',              player_name, player_photo, player_position, defensive_actions::int,    'Tkl+Int',      row_number() over (order by defensive_actions desc) from base
+    union all
+    select 'Top Crosser',               player_name, player_photo, player_position, crosses::int,              'Crosses',      row_number() over (order by crosses           desc) from base
+    union all
+    select 'Top Passer',                player_name, player_photo, player_position, passes::int,               'Acc. Passes',  row_number() over (order by passes            desc) from base
+)
+where rn = 1
+order by case category
+    when 'Top Scorer'   then 1
+    when 'Top Assister' then 2
+    when 'Top Dribbler' then 3
+    when 'Top Defender' then 4
+    when 'Top Crosser'  then 5
+    when 'Top Passer'   then 6
+end
 ```
 
 {#key seasons[0]?.season}
@@ -49,10 +108,6 @@ order by player_name
 
 {#key teams[0]?.team_name}
 <Dropdown data={teams} name=team value=team_name label=team_name defaultValue={teams[0]?.team_name} />
-{/key}
-
-{#key players_in_team[0]?.player_name}
-<Dropdown data={players_in_team} name=player value=player_name label=player_name defaultValue={players_in_team[0]?.player_name} />
 {/key}
 
 ```sql player_profile
@@ -162,6 +217,33 @@ select * from ranked where player_name = '${inputs.player.value}'
 ```
 
 ---
+
+## Team Leaders
+
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+{#each top_players as tp}
+<div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col items-center text-center">
+  <div class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">{tp.category}</div>
+  <img src="{tp.player_photo}" alt="{tp.player_name}" class="h-16 w-16 rounded-full object-cover mb-3 border-2 border-gray-100" onerror="this.style.display='none'" />
+  <div class="text-sm font-bold text-gray-900 leading-tight">{tp.player_name}</div>
+  <div class="text-xs text-gray-400 mt-1">{tp.player_position}</div>
+  <div class="mt-3 text-2xl font-black text-blue-600">{tp.stat_value}</div>
+  <div class="text-xs text-gray-400">{tp.stat_label}</div>
+</div>
+{/each}
+</div>
+
+---
+
+## Player Deep Dive
+
+{#key positions.map(p => p.player_position).join(',')}
+<Dropdown data={positions} name=position value=player_position label=player_position multiple=true defaultValue={positions.map(p => p.player_position)} />
+{/key}
+
+{#key players_in_team[0]?.player_name}
+<Dropdown data={players_in_team} name=player value=player_name label=player_name order="sort_order" defaultValue={players_in_team[0]?.player_name} />
+{/key}
 
 ## Player Profile
 
