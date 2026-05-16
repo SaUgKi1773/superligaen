@@ -108,8 +108,8 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">🌍</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">League Analytics</div>
-      <div class="text-gray-400 text-sm mt-1">YoY trends, HT intelligence, possession paradox &amp; 16-season history</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">League Intelligence</div>
+      <div class="text-gray-400 text-sm mt-1">Season KPIs, standings, points race, team landscape & radar, attack/defence/discipline rankings</div>
     </div>
   </div>
 </a>
@@ -118,8 +118,8 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">📊</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Team Analytics</div>
-      <div class="text-gray-400 text-sm mt-1">League benchmarks, points race overlay, phase splits &amp; home/away</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Team Intelligence</div>
+      <div class="text-gray-400 text-sm mt-1">KPIs vs previous season, points race, match log, squad depth &amp; home/away splits</div>
     </div>
   </div>
 </a>
@@ -128,8 +128,8 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">👟</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Player Analytics</div>
-      <div class="text-gray-400 text-sm mt-1">Per-90 leaderboards, ratings, defensive & creative metrics</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Player Intelligence</div>
+      <div class="text-gray-400 text-sm mt-1">Individual player profile — league percentile radar, performance timeline &amp; match-by-match log</div>
     </div>
   </div>
 </a>
@@ -138,7 +138,7 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">🏟️</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Stadium Analytics</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Stadium Intelligence</div>
       <div class="text-gray-400 text-sm mt-1">Stadium map, surface effects and home fortress rankings</div>
     </div>
   </div>
@@ -148,7 +148,7 @@ limit 1
   <div class="flex items-start gap-4">
     <div class="text-3xl">🟨</div>
     <div>
-      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Referee Analytics</div>
+      <div class="text-base font-bold text-gray-800 group-hover:text-blue-500 transition-colors">Referee Intelligence</div>
       <div class="text-gray-400 text-sm mt-1">Cards, fouls, home/away bias and discipline trends</div>
     </div>
   </div>
