@@ -13,219 +13,60 @@ select season from (
 ) order by is_current desc, season desc
 ```
 
+```sql teams
+select distinct team_name
+from superligaen.mart_player_facts
+where season = '${inputs.season.value}'
+  and result in ('Win', 'Draw', 'Loss')
+order by team_name
+```
+
+```sql players_in_team
+select distinct player_name
+from superligaen.mart_player_facts
+where season = '${inputs.season.value}'
+  and team_name = '${inputs.team.value}'
+  and result in ('Win', 'Draw', 'Loss')
+order by player_name
+```
+
 {#key seasons[0]?.season}
 <Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
 {/key}
 
-```sql position_options
-select * from (values
-  ('All Positions'),
-  ('Attacker'),
-  ('Midfielder'),
-  ('Defender'),
-  ('Goalkeeper')
-) as t(player_position)
-```
+{#key teams[0]?.team_name}
+<Dropdown data={teams} name=team value=team_name label=team_name defaultValue={teams[0]?.team_name} />
+{/key}
 
-<Dropdown data={position_options} name=position value=player_position label=player_position defaultValue="All Positions" />
+{#key players_in_team[0]?.player_name}
+<Dropdown data={players_in_team} name=player value=player_name label=player_name defaultValue={players_in_team[0]?.player_name} />
+{/key}
 
-```sql scoring_podium
-select
-    player_name,
-    player_photo,
-    team_name,
-    team_logo,
-    sum(goals_scored)::int                                                         as goals,
-    sum(assists)::int                                                              as assists,
-    count(distinct match_id)::int                                                  as matches,
-    round(sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0), 2)           as goals_per90,
-    row_number() over (order by sum(goals_scored) desc, sum(assists) desc)::int   as podium_rank
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, player_photo, team_name, team_logo
-having sum(goals_scored) >= 1
-order by goals desc
-limit 3
-```
-
-```sql per90_leaderboard
-select
-    row_number() over (order by sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0) desc)::int as rank,
-    player_name,
-    player_photo,
-    team_name,
-    team_logo,
-    player_position,
-    sum(goals_scored)::int                                                                 as goals,
-    sum(assists)::int                                                                      as assists,
-    count(distinct match_id)::int                                                          as matches,
-    sum(minutes_played)::int                                                               as minutes,
-    round(sum(goals_scored) * 90.0      / nullif(sum(minutes_played), 0), 2)              as goals_per90,
-    round(sum(assists) * 90.0           / nullif(sum(minutes_played), 0), 2)              as assists_per90,
-    round((sum(goals_scored)+sum(assists)) * 90.0 / nullif(sum(minutes_played), 0), 2)    as contributions_per90,
-    round(sum(shots_total) * 90.0       / nullif(sum(minutes_played), 0), 2)              as shots_per90,
-    round(avg(rating), 2)                                                                  as avg_rating
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, player_photo, team_name, team_logo, player_position
-having sum(minutes_played) >= 450
-order by goals_per90 desc
-limit 30
-```
-
-```sql rating_leaders
-select
-    row_number() over (order by avg(rating) desc)::int   as rank,
-    player_name,
-    player_photo,
-    team_name,
-    team_logo,
-    player_position,
-    round(avg(rating), 2)                                as avg_rating,
-    count(distinct match_id)::int                        as matches,
-    sum(goals_scored)::int                               as goals,
-    sum(assists)::int                                    as assists,
-    sum(minutes_played)::int                             as minutes
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and rating is not null
-  and rating > 0
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, player_photo, team_name, team_logo, player_position
-having count(distinct match_id) >= 5
-order by avg_rating desc
-limit 20
-```
-
-```sql defensive_leaderboard
-select
-    row_number() over (order by sum(tackles) * 90.0 / nullif(sum(minutes_played), 0) desc)::int as rank,
-    player_name,
-    player_photo,
-    team_name,
-    team_logo,
-    player_position,
-    sum(tackles)::int                                                              as tackles,
-    sum(interceptions)::int                                                        as interceptions,
-    sum(clearances)::int                                                           as clearances,
-    sum(aerials_won)::int                                                          as aerials_won,
-    round(sum(tackles) * 90.0       / nullif(sum(minutes_played), 0), 2)          as tackles_per90,
-    round(sum(interceptions) * 90.0 / nullif(sum(minutes_played), 0), 2)          as interceptions_per90,
-    count(distinct match_id)::int                                                  as matches,
-    sum(minutes_played)::int                                                       as minutes
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, player_photo, team_name, team_logo, player_position
-having sum(minutes_played) >= 450
-order by tackles_per90 desc
-limit 20
-```
-
-```sql creators_leaderboard
-select
-    row_number() over (order by sum(key_passes) * 90.0 / nullif(sum(minutes_played), 0) desc)::int as rank,
-    player_name,
-    player_photo,
-    team_name,
-    team_logo,
-    player_position,
-    sum(assists)::int                                                                  as assists,
-    sum(key_passes)::int                                                               as key_passes,
-    sum(big_chances_created)::int                                                      as big_chances,
-    sum(passes_accurate)::int                                                          as accurate_passes,
-    round(sum(key_passes) * 90.0         / nullif(sum(minutes_played), 0), 2)         as key_passes_per90,
-    round(sum(big_chances_created) * 90.0/ nullif(sum(minutes_played), 0), 2)         as big_chances_per90,
-    round(100.0 * sum(passes_accurate)   / nullif(sum(passes_total), 0), 1)           as pass_accuracy,
-    count(distinct match_id)::int                                                      as matches,
-    sum(minutes_played)::int                                                           as minutes
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, player_photo, team_name, team_logo, player_position
-having sum(minutes_played) >= 450
-order by key_passes_per90 desc
-limit 20
-```
-
-```sql efficiency_scatter
-select
-    player_name,
-    team_name,
-    player_position,
-    sum(minutes_played)::int                                                          as minutes,
-    sum(goals_scored)::int                                                            as goals,
-    round(sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0), 2)              as goals_per90,
-    round(avg(rating), 2)                                                             as avg_rating
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-group by player_name, team_name, player_position
-having sum(minutes_played) >= 450
-  and sum(goals_scored) > 0
-order by goals_per90 desc
-```
-
-```sql players_for_dropdown
-select distinct player_name
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-  and (
-    '${inputs.position.value}' = 'All Positions'
-    or player_position = '${inputs.position.value}'
-  )
-order by player_name
-```
-
-<Dropdown data={players_for_dropdown} name=player value=player_name label=player_name />
-
-```sql player_kpis
+```sql player_profile
 select
     player_name,
     player_photo,
     team_name,
     team_logo,
     player_position,
-    count(distinct match_id)::int                                                     as matches,
-    sum(minutes_played)::int                                                          as minutes,
-    sum(goals_scored)::int                                                            as goals,
-    sum(assists)::int                                                                 as assists,
-    sum(shots_total)::int                                                             as shots,
-    sum(shots_on_target)::int                                                         as shots_on_target,
-    sum(key_passes)::int                                                              as key_passes,
-    sum(tackles)::int                                                                 as tackles,
-    round(avg(rating), 2)                                                             as avg_rating,
-    round(sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0), 2)              as goals_per90,
-    round(sum(assists) * 90.0 / nullif(sum(minutes_played), 0), 2)                   as assists_per90,
-    round(100.0 * sum(passes_accurate) / nullif(sum(passes_total), 0), 1)            as pass_accuracy,
-    round(100.0 * sum(goals_scored) / nullif(sum(shots_total), 0), 1)                as shot_accuracy
+    count(distinct match_id)::int                                                         as matches,
+    sum(minutes_played)::int                                                              as minutes,
+    sum(goals_scored)::int                                                                as goals,
+    sum(assists)::int                                                                     as assists,
+    sum(shots_total)::int                                                                 as shots,
+    sum(shots_on_target)::int                                                             as shots_on_target,
+    sum(key_passes)::int                                                                  as key_passes,
+    sum(tackles)::int                                                                     as tackles,
+    sum(yellow_cards)::int                                                                as yellow_cards,
+    round(avg(rating), 2)                                                                 as avg_rating,
+    round(sum(goals_scored)  * 90.0 / nullif(sum(minutes_played), 0), 2)                 as goals_per90,
+    round(sum(assists)       * 90.0 / nullif(sum(minutes_played), 0), 2)                 as assists_per90,
+    round((sum(goals_scored) + sum(assists)) * 90.0 / nullif(sum(minutes_played), 0), 2) as contributions_per90,
+    round(100.0 * sum(passes_accurate)  / nullif(sum(passes_total), 0), 1)               as pass_accuracy,
+    round(100.0 * sum(goals_scored)     / nullif(sum(shots_total),  0), 1)               as shot_conversion,
+    sum(case when result = 'Win'  then 1 else 0 end)::int                                as wins,
+    sum(case when result = 'Draw' then 1 else 0 end)::int                                as draws,
+    sum(case when result = 'Loss' then 1 else 0 end)::int                                as losses
 from superligaen.mart_player_facts
 where season = '${inputs.season.value}'
   and player_name = '${inputs.player.value}'
@@ -233,17 +74,34 @@ where season = '${inputs.season.value}'
 group by player_name, player_photo, team_name, team_logo, player_position
 ```
 
+```sql player_trend
+select
+    match_round_number                             as round,
+    goals_scored                                   as goals,
+    assists,
+    rating
+from superligaen.mart_player_facts
+where season = '${inputs.season.value}'
+  and player_name = '${inputs.player.value}'
+  and result in ('Win', 'Draw', 'Loss')
+order by match_round_number
+```
+
 ```sql player_match_log
 select
-    match_date,
-    match_round_name                    as round,
-    opponent_team_name                  as opponent,
-    team_side                           as home_away,
-    result,
+    strftime(match_date, '%d %b')                as match_date,
+    match_round_name                              as round,
+    opponent_team_name                            as opponent,
+    team_side                                     as home_away,
+    case result
+        when 'Win'  then '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:20px;background:#22c55e;color:white;border-radius:4px;font-size:12px;font-weight:700;">W</span>'
+        when 'Draw' then '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:20px;background:#eab308;color:white;border-radius:4px;font-size:12px;font-weight:700;">D</span>'
+        else             '<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:20px;background:#ef4444;color:white;border-radius:4px;font-size:12px;font-weight:700;">L</span>'
+    end                                           as result_badge,
     minutes_played,
-    goals_scored                        as goals,
+    goals_scored                                  as goals,
     assists,
-    shots_total                         as shots,
+    shots_total                                   as shots,
     shots_on_target,
     key_passes,
     tackles,
@@ -256,231 +114,279 @@ where season = '${inputs.season.value}'
 order by match_date desc
 ```
 
----
-
-## Player Intelligence — {inputs.season.value}
-
----
-
-## Scoring Podium
-
-<div class="grid grid-cols-3 gap-4 md:gap-6 mb-8">
-  {#each scoring_podium as p}
-    <div class="relative rounded-2xl border p-4 md:p-6 text-center shadow-md flex flex-col items-center
-      {p.podium_rank === 1 ? 'border-amber-300 bg-gradient-to-b from-amber-50 to-yellow-100 order-first md:scale-105' :
-       p.podium_rank === 2 ? 'border-gray-300 bg-gradient-to-b from-gray-50 to-gray-100' :
-       'border-orange-200 bg-gradient-to-b from-orange-50 to-amber-50'}">
-      <div class="text-2xl md:text-3xl font-black mb-2
-        {p.podium_rank === 1 ? 'text-amber-500' : p.podium_rank === 2 ? 'text-gray-400' : 'text-orange-400'}">
-        {p.podium_rank === 1 ? '🥇' : p.podium_rank === 2 ? '🥈' : '🥉'}
-      </div>
-      <img src="{p.player_photo}" alt="{p.player_name}"
-        class="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 shadow-lg mb-3
-          {p.podium_rank === 1 ? 'border-amber-400' : p.podium_rank === 2 ? 'border-gray-300' : 'border-orange-300'}"
-        onerror="this.style.display='none'" />
-      <div class="font-extrabold text-gray-800 text-sm md:text-base leading-tight">{p.player_name}</div>
-      <div class="flex items-center justify-center gap-1 mt-1 mb-3">
-        <img src="{p.team_logo}" alt="{p.team_name}" class="h-4 w-4 object-contain" onerror="this.style.display='none'" />
-        <span class="text-xs text-gray-400">{p.team_name}</span>
-      </div>
-      <div class="text-3xl md:text-4xl font-black
-        {p.podium_rank === 1 ? 'text-amber-500' : p.podium_rank === 2 ? 'text-gray-500' : 'text-orange-400'}">
-        {p.goals}
-      </div>
-      <div class="text-xs text-gray-400 mt-1">goals · {p.matches} apps</div>
-    </div>
-  {/each}
-</div>
+```sql league_context
+with base as (
+    select
+        player_name,
+        sum(goals_scored)                                                          as goals,
+        sum(assists)                                                               as assists,
+        avg(rating)                                                                as avg_rating,
+        sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0)                 as goals_per90,
+        sum(assists)      * 90.0 / nullif(sum(minutes_played), 0)                 as assists_per90,
+        100.0 * sum(passes_accurate) / nullif(sum(passes_total),  0)              as pass_accuracy,
+        100.0 * sum(goals_scored)    / nullif(sum(shots_total),   0)              as shot_conversion
+    from superligaen.mart_player_facts
+    where season = '${inputs.season.value}'
+      and result in ('Win', 'Draw', 'Loss')
+    group by player_name
+    having sum(minutes_played) >= 450
+),
+ranked as (
+    select
+        player_name,
+        round(percent_rank() over (order by goals)           * 100) as goals_pct,
+        round(percent_rank() over (order by assists)         * 100) as assists_pct,
+        round(percent_rank() over (order by avg_rating)      * 100) as rating_pct,
+        round(percent_rank() over (order by goals_per90)     * 100) as goals_per90_pct,
+        round(percent_rank() over (order by assists_per90)   * 100) as assists_per90_pct,
+        round(percent_rank() over (order by pass_accuracy)   * 100) as pass_pct,
+        round(percent_rank() over (order by shot_conversion) * 100) as shot_conv_pct
+    from base
+)
+select * from ranked where player_name = '${inputs.player.value}'
+```
 
 ---
 
-## Attacking Efficiency — Goals per 90
+## Player Profile
 
-*Min. 450 minutes played. Bubble = total goals.*
-
-<ScatterPlot
-    data={efficiency_scatter}
-    x=minutes
-    y=goals_per90
-    series=player_position
-    xAxisTitle="Minutes Played"
-    yAxisTitle="Goals per 90"
-    title="Goal Efficiency — {inputs.season.value}"
-    tooltipColumns={[{id: 'player_name', title: 'Player'}, {id: 'team_name', title: 'Team'}, {id: 'goals', title: 'Goals'}, {id: 'goals_per90', title: 'G/90'}, {id: 'avg_rating', title: 'Rating'}]}
-/>
-
----
-
-## Goals per 90 Leaderboard
-
-<div class="hidden md:block">
-<DataTable data={per90_leaderboard} rows=20>
-    <Column id=rank              title="#"            align=center />
-    <Column id=player_photo      title=""             contentType=image height=32 />
-    <Column id=player_name       title="Player"       />
-    <Column id=team_logo         title=""             contentType=image height=24 />
-    <Column id=team_name         title="Team"         />
-    <Column id=player_position   title="Position"     />
-    <Column id=goals             title="Goals"        align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=assists           title="Assists"      align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=goals_per90       title="G/90"         contentType=colorscale colorPalette={['white','#22c55e']} />
-    <Column id=assists_per90     title="A/90"         contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=shots_per90       title="Shots/90"     />
-    <Column id=avg_rating        title="Rating"       contentType=colorscale colorPalette={['white','#8b5cf6']} />
-    <Column id=matches           title="MP"           align=center />
-</DataTable>
-</div>
-<div class="block md:hidden">
-<DataTable data={per90_leaderboard} rows=20>
-    <Column id=rank         title="#"        align=center />
-    <Column id=player_name  title="Player"   />
-    <Column id=goals        title="G"        align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=goals_per90  title="G/90"     contentType=colorscale colorPalette={['white','#22c55e']} />
-    <Column id=avg_rating   title="Rating"   />
-</DataTable>
-</div>
-
----
-
-## Highest Rated Players
-
-<div class="hidden md:block">
-<DataTable data={rating_leaders} rows=20>
-    <Column id=rank            title="#"         align=center />
-    <Column id=player_photo    title=""          contentType=image height=32 />
-    <Column id=player_name     title="Player"    />
-    <Column id=team_logo       title=""          contentType=image height=24 />
-    <Column id=team_name       title="Team"      />
-    <Column id=player_position title="Position"  />
-    <Column id=avg_rating      title="Avg Rating" contentType=colorscale colorPalette={['white','#8b5cf6']} />
-    <Column id=matches         title="MP"        align=center />
-    <Column id=goals           title="Goals"     align=center />
-    <Column id=assists         title="Assists"   align=center />
-</DataTable>
-</div>
-<div class="block md:hidden">
-<DataTable data={rating_leaders} rows=20>
-    <Column id=rank        title="#"       align=center />
-    <Column id=player_name title="Player"  />
-    <Column id=avg_rating  title="Rating"  contentType=colorscale colorPalette={['white','#8b5cf6']} />
-    <Column id=goals       title="G"       align=center />
-    <Column id=assists     title="A"       align=center />
-</DataTable>
-</div>
-
----
-
-## Creative Midfielders — Key Passes per 90
-
-<div class="hidden md:block">
-<DataTable data={creators_leaderboard} rows=20>
-    <Column id=rank               title="#"             align=center />
-    <Column id=player_photo       title=""              contentType=image height=32 />
-    <Column id=player_name        title="Player"        />
-    <Column id=team_logo          title=""              contentType=image height=24 />
-    <Column id=team_name          title="Team"          />
-    <Column id=player_position    title="Position"      />
-    <Column id=key_passes_per90   title="Key Pass/90"   contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=big_chances_per90  title="Big Chance/90" contentType=colorscale colorPalette={['white','#22c55e']} />
-    <Column id=assists            title="Assists"       align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=pass_accuracy      title="Pass Acc %"    fmt='0.0"%"' contentType=colorscale colorPalette={['white','#8b5cf6']} />
-    <Column id=matches            title="MP"            align=center />
-</DataTable>
-</div>
-<div class="block md:hidden">
-<DataTable data={creators_leaderboard} rows=20>
-    <Column id=rank              title="#"       align=center />
-    <Column id=player_name       title="Player"  />
-    <Column id=key_passes_per90  title="KP/90"   contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=assists           title="A"       align=center />
-    <Column id=pass_accuracy     title="Pass %"  fmt='0.0"%"' />
-</DataTable>
-</div>
-
----
-
-## Defensive Workrate — Tackles per 90
-
-<div class="hidden md:block">
-<DataTable data={defensive_leaderboard} rows=20>
-    <Column id=rank                  title="#"             align=center />
-    <Column id=player_photo          title=""              contentType=image height=32 />
-    <Column id=player_name           title="Player"        />
-    <Column id=team_logo             title=""              contentType=image height=24 />
-    <Column id=team_name             title="Team"          />
-    <Column id=player_position       title="Position"      />
-    <Column id=tackles_per90         title="Tackles/90"    contentType=colorscale colorPalette={['white','#14b8a6']} />
-    <Column id=interceptions_per90   title="Interc/90"     contentType=colorscale colorPalette={['white','#0ea5e9']} />
-    <Column id=tackles               title="Total Tackles" align=center />
-    <Column id=interceptions         title="Interceptions" align=center />
-    <Column id=clearances            title="Clearances"    align=center />
-    <Column id=aerials_won           title="Aerials Won"   align=center />
-    <Column id=matches               title="MP"            align=center />
-</DataTable>
-</div>
-<div class="block md:hidden">
-<DataTable data={defensive_leaderboard} rows=20>
-    <Column id=rank             title="#"       align=center />
-    <Column id=player_name      title="Player"  />
-    <Column id=tackles_per90    title="Tck/90"  contentType=colorscale colorPalette={['white','#14b8a6']} />
-    <Column id=interceptions    title="Int"     align=center />
-</DataTable>
-</div>
-
----
-
-## Player Deep Dive
-
-{#each player_kpis as p}
+{#each player_profile as p}
 <div class="rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 md:p-8 mb-6 shadow-xl">
   <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
     <img src="{p.player_photo}" alt="{p.player_name}"
-      class="h-24 w-24 rounded-full object-cover border-4 border-white/20 shadow-xl"
+      class="h-28 w-28 rounded-full object-cover border-4 border-white/20 shadow-xl flex-shrink-0"
       onerror="this.style.display='none'" />
     <div class="flex-1 text-center md:text-left">
-      <div class="text-3xl font-extrabold text-white">{p.player_name}</div>
-      <div class="flex items-center justify-center md:justify-start gap-2 mt-1">
+      <div class="text-3xl md:text-4xl font-extrabold text-white leading-tight">{p.player_name}</div>
+      <div class="flex items-center justify-center md:justify-start gap-2 mt-2">
         <img src="{p.team_logo}" alt="{p.team_name}" class="h-5 w-5 object-contain" onerror="this.style.display='none'" />
         <span class="text-gray-300 text-sm">{p.team_name}</span>
-        <span class="text-gray-500 text-sm">· {p.player_position}</span>
+        <span class="text-gray-500 text-sm">·</span>
+        <span class="text-gray-400 text-sm">{p.player_position}</span>
       </div>
-      <div class="flex flex-wrap justify-center md:justify-start gap-6 mt-5">
-        <div class="text-center"><div class="text-2xl font-black text-amber-400">{p.goals}</div><div class="text-xs text-gray-400 uppercase tracking-widest">Goals</div></div>
-        <div class="text-center"><div class="text-2xl font-black text-blue-400">{p.assists}</div><div class="text-xs text-gray-400 uppercase tracking-widest">Assists</div></div>
-        <div class="text-center"><div class="text-2xl font-black text-purple-400">{p.avg_rating}</div><div class="text-xs text-gray-400 uppercase tracking-widest">Avg Rating</div></div>
-        <div class="text-center"><div class="text-2xl font-black text-white">{p.matches}</div><div class="text-xs text-gray-400 uppercase tracking-widest">Apps</div></div>
-        <div class="text-center"><div class="text-2xl font-black text-green-400">{p.goals_per90}</div><div class="text-xs text-gray-400 uppercase tracking-widest">G/90</div></div>
-        <div class="text-center"><div class="text-2xl font-black text-teal-400">{p.pass_accuracy}%</div><div class="text-xs text-gray-400 uppercase tracking-widest">Pass Acc</div></div>
+      <div class="flex flex-wrap justify-center md:justify-start gap-6 mt-6">
+        <div class="text-center">
+          <div class="text-3xl font-black text-amber-400">{p.goals}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">Goals</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-black text-blue-400">{p.assists}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">Assists</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-black text-purple-400">{p.avg_rating ?? '—'}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">Avg Rating</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-black text-white">{p.matches}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">Apps</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-black text-green-400">{p.goals_per90}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">G/90</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-black text-teal-400">{p.contributions_per90}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-widest mt-1">G+A/90</div>
+        </div>
+      </div>
+      <div class="flex justify-center md:justify-start gap-3 mt-5">
+        <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm font-bold">{p.wins}W</span>
+        <span class="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-bold">{p.draws}D</span>
+        <span class="px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-sm font-bold">{p.losses}L</span>
+        <span class="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm">{p.minutes} mins</span>
       </div>
     </div>
   </div>
 </div>
 {/each}
 
+---
+
+## Season Overview
+
+{#each player_profile as p}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Goals</div>
+    <div class="text-3xl font-black text-center text-amber-500 flex-1 flex items-center justify-center">{p.goals}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.shots} shots · {p.shots_on_target} on target</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Assists</div>
+    <div class="text-3xl font-black text-center text-blue-500 flex-1 flex items-center justify-center">{p.assists}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.key_passes} key passes</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Goals / 90</div>
+    <div class="text-3xl font-black text-center text-green-600 flex-1 flex items-center justify-center">{p.goals_per90}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">G+A/90: {p.contributions_per90}</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Assists / 90</div>
+    <div class="text-3xl font-black text-center text-blue-600 flex-1 flex items-center justify-center">{p.assists_per90}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.matches} appearances</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Pass Accuracy</div>
+    <div class="text-3xl font-black text-center text-purple-600 flex-1 flex items-center justify-center">{p.pass_accuracy}%</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.minutes} minutes played</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Shot Conversion</div>
+    <div class="text-3xl font-black text-center text-orange-500 flex-1 flex items-center justify-center">{p.shot_conversion != null ? p.shot_conversion + '%' : '—'}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.shots} total shots</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Avg Rating</div>
+    <div class="text-3xl font-black text-center text-violet-600 flex-1 flex items-center justify-center">{p.avg_rating ?? '—'}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.matches} appearances</div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Minutes Played</div>
+    <div class="text-3xl font-black text-center text-gray-700 flex-1 flex items-center justify-center">{p.minutes}</div>
+    <div class="text-xs text-gray-400 text-center mt-3">{p.tackles} tackles · {p.yellow_cards} YC</div>
+  </div>
+
+</div>
+{/each}
+
+---
+
+## League Standing
+
+*Percentile rank among all players with 450+ minutes in {inputs.season.value}. 100 = best in the league.*
+
+{#each league_context as lc}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 mb-6 max-w-2xl">
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Goals</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-amber-400" style="width:{lc.goals_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.goals_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Assists</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-blue-400" style="width:{lc.assists_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.assists_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Goals / 90</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-green-500" style="width:{lc.goals_per90_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.goals_per90_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Assists / 90</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-sky-400" style="width:{lc.assists_per90_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.assists_per90_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Avg Rating</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-violet-500" style="width:{lc.rating_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.rating_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Pass Accuracy</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-indigo-500" style="width:{lc.pass_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.pass_pct}</div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Shot Conversion</div>
+    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+      <div class="h-2.5 rounded-full bg-orange-400" style="width:{lc.shot_conv_pct}%"></div>
+    </div>
+    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.shot_conv_pct}</div>
+  </div>
+
+</div>
+{/each}
+
+---
+
+## Performance Timeline
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+<LineChart
+    data={player_trend}
+    x=round
+    y=rating
+    xAxisTitle="Round"
+    yAxisTitle="Match Rating"
+    title="Rating per Match"
+    lineColor="#8b5cf6"
+    chartAreaHeight=220
+/>
+
+<BarChart
+    data={player_trend}
+    x=round
+    y={['goals','assists']}
+    xAxisTitle="Round"
+    yAxisTitle="Contributions"
+    title="Goals & Assists per Match"
+    colorPalette={['#f59e0b','#3b82f6']}
+    chartAreaHeight=220
+    stacked=true
+/>
+
+</div>
+
+---
+
+## Match Log
+
 <div class="hidden md:block">
-<DataTable data={player_match_log} rows=15>
-    <Column id=match_date     title="Date"      />
-    <Column id=round          title="Round"     />
-    <Column id=home_away      title="H/A"       align=center />
-    <Column id=opponent       title="Opponent"  />
-    <Column id=result         title="Result"    />
-    <Column id=minutes_played title="Mins"      align=center />
-    <Column id=goals          title="Goals"     align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=assists        title="Assists"   align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=shots          title="Shots"     align=center />
-    <Column id=key_passes     title="KP"        align=center />
-    <Column id=tackles        title="Tackles"   align=center />
-    <Column id=yellow_cards   title="YC"        align=center />
-    <Column id=rating         title="Rating"    contentType=colorscale colorPalette={['white','#8b5cf6']} />
+<DataTable data={player_match_log} rows=20>
+    <Column id=match_date      title="Date"     />
+    <Column id=round           title="Round"    />
+    <Column id=home_away       title="H/A"      align=center />
+    <Column id=opponent        title="Opponent" />
+    <Column id=result_badge    title="Result"   contentType=html align=center />
+    <Column id=minutes_played  title="Mins"     align=center />
+    <Column id=goals           title="Goals"    align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
+    <Column id=assists         title="Assists"  align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
+    <Column id=shots           title="Shots"    align=center />
+    <Column id=shots_on_target title="SoT"      align=center />
+    <Column id=key_passes      title="KP"       align=center />
+    <Column id=tackles         title="Tackles"  align=center />
+    <Column id=yellow_cards    title="YC"       align=center />
+    <Column id=rating          title="Rating"   contentType=colorscale colorPalette={['white','#8b5cf6']} />
 </DataTable>
 </div>
 <div class="block md:hidden">
-<DataTable data={player_match_log} rows=15>
-    <Column id=match_date     title="Date"     />
-    <Column id=opponent       title="Opponent" />
-    <Column id=result         title="Result"   />
-    <Column id=goals          title="G"        align=center />
-    <Column id=assists        title="A"        align=center />
-    <Column id=rating         title="Rating"   />
+<DataTable data={player_match_log} rows=20>
+    <Column id=match_date   title="Date"     />
+    <Column id=opponent     title="Opponent" />
+    <Column id=result_badge title=""         contentType=html align=center />
+    <Column id=goals        title="G"        align=center />
+    <Column id=assists      title="A"        align=center />
+    <Column id=rating       title="Rating"   />
 </DataTable>
 </div>
