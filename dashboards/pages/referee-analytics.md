@@ -127,7 +127,7 @@ from ${referee_trends}
 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
 
 <div>
-  <div class="text-sm font-bold text-red-500 uppercase tracking-widest mb-3">🟨 Strictest</div>
+  <div class="text-sm font-bold text-red-500 uppercase tracking-widest mb-3">🟨 Most Strict</div>
   <div class="flex flex-col gap-3">
     {#each top3_strictest as r, i}
       <div class="rounded-xl border border-red-100 bg-gradient-to-r from-red-50 to-orange-50 p-4 flex items-center gap-4">
@@ -146,7 +146,7 @@ from ${referee_trends}
 </div>
 
 <div>
-  <div class="text-sm font-bold text-green-500 uppercase tracking-widest mb-3">🟩 Most Lenient</div>
+  <div class="text-sm font-bold text-green-500 uppercase tracking-widest mb-3">🟩 Least Strict</div>
   <div class="flex flex-col gap-3">
     {#each top3_lenient as r, i}
       <div class="rounded-xl border border-green-100 bg-gradient-to-r from-green-50 to-teal-50 p-4 flex items-center gap-4">
