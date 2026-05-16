@@ -86,8 +86,8 @@ select
     max(stadium_surface)                                                                            as stadium_surface,
     max(stadium_capacity)                                                                           as stadium_capacity,
     mode(team_logo) filter (where team_side='Home')                                                 as team_logo,
-    '<img src="' || mode(team_logo) filter (where team_side='Home') || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''">'  as home_team_logo,
     mode(team_name) filter (where team_side='Home')                                                 as home_team,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || mode(team_logo) filter (where team_side='Home') || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || mode(team_name) filter (where team_side='Home') || '</span></div>' as home_team_col,
     count(distinct match_id) filter (where team_side='Home')::int                                  as home_matches,
     sum(case when team_side='Home' and result='Win'  then 1 else 0 end)::int                       as home_wins,
     sum(case when team_side='Home' and result='Draw' then 1 else 0 end)::int                       as home_draws,
@@ -282,8 +282,7 @@ from (
 
 <div class="hidden md:block mt-4">
 <DataTable data={fortress_ranking} rows=20>
-    <Column id=home_team_logo           title=""                        contentType=html />
-    <Column id=home_team                title="Home Team"               />
+    <Column id=home_team_col            title="Home Team"               contentType=html />
     <Column id=stadium_name             title="Stadium"                 wrap=true />
     <Column id=stadium_capacity         title="Capacity"                align=center />
     <Column id=home_win_pct             title="Win %"                   fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
@@ -296,8 +295,7 @@ from (
 </div>
 <div class="block md:hidden mt-4">
 <DataTable data={fortress_ranking} rows=20>
-    <Column id=home_team_logo           title=""                        contentType=html />
-    <Column id=home_team                title="Home Team"               />
+    <Column id=home_team_col            title="Home Team"               contentType=html />
     <Column id=stadium_name             title="Stadium"                 wrap=true />
     <Column id=stadium_capacity         title="Capacity"                align=center />
     <Column id=home_win_pct             title="Win %"                   fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
