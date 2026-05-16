@@ -88,6 +88,7 @@ select
     mode(team_logo) filter (where team_side='Home')                                                 as team_logo,
     mode(team_name) filter (where team_side='Home')                                                 as home_team,
     '<div style="display:flex;align-items:center;gap:6px;"><img src="' || mode(team_logo) filter (where team_side='Home') || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || mode(team_name) filter (where team_side='Home') || '</span></div>' as home_team_col,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || mode(team_logo) filter (where team_side='Home') || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || mode(team_short_name) filter (where team_side='Home') || '</span></div>' as home_team_col_mobile,
     count(distinct match_id) filter (where team_side='Home')::int                                  as home_matches,
     sum(case when team_side='Home' and result='Win'  then 1 else 0 end)::int                       as home_wins,
     sum(case when team_side='Home' and result='Draw' then 1 else 0 end)::int                       as home_draws,
@@ -286,16 +287,16 @@ from (
     <Column id=stadium_name             title="Stadium"                 wrap=true />
     <Column id=stadium_capacity         title="Capacity"                align=center />
     <Column id=home_win_pct             title="Win %"                   fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=home_wins                title="W"                       align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    <Column id=home_wins                title="W"                       align=center />
     <Column id=home_draws               title="D"                       align=center />
-    <Column id=home_losses              title="L"                       align=center contentType=colorscale colorPalette={['white','#ef4444']} />
+    <Column id=home_losses              title="L"                       align=center />
     <Column id=goals_scored_per_match   title="Goals Scored/Match"      />
     <Column id=goals_conceded_per_match title="Goals Conceded/Match"    />
 </DataTable>
 </div>
 <div class="block md:hidden mt-4">
 <DataTable data={fortress_ranking} rows=20>
-    <Column id=home_team_col            title="Home Team"               contentType=html />
+    <Column id=home_team_col_mobile     title="Home Team"               contentType=html width="max-content" />
     <Column id=stadium_name             title="Stadium"                 wrap=true />
     <Column id=stadium_capacity         title="Capacity"                align=center />
     <Column id=home_win_pct             title="Win %"                   fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
