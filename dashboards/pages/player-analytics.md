@@ -45,15 +45,13 @@ order by player_position
 ```
 
 ```sql players_in_team
-select
-    player_name,
-    row_number() over (order by sum(goals_scored) desc) as sort_order
+select distinct player_name
 from superligaen.mart_player_facts
 where season = '${inputs.season.value}'
   and team_name = '${inputs.team.value}'
   and player_position in ${inputs.position.value}
   and result in ('Win', 'Draw', 'Loss')
-group by player_name
+order by player_name
 ```
 
 
@@ -242,7 +240,7 @@ select * from ranked where player_name = '${inputs.player.value}'
 {/key}
 
 {#key players_in_team[0]?.player_name}
-<Dropdown data={players_in_team} name=player value=player_name label=player_name order="sort_order" defaultValue={players_in_team[0]?.player_name} />
+<Dropdown data={players_in_team} name=player value=player_name label=player_name defaultValue={players_in_team[0]?.player_name} />
 {/key}
 
 ## Player Profile
