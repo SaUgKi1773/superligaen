@@ -1,7 +1,6 @@
 <script>
   export let data = [];
-
-  const metrics = [
+  export let metrics = [
     { key: 'attack_pct',      label: 'Attack Score'     },
     { key: 'passing_pct',     label: 'Passing Score'    },
     { key: 'efficiency_pct',  label: 'Efficiency Score' },
@@ -23,8 +22,9 @@
   const cx    = W / 2;
   const cy    = H / 2;
   const r     = 110;
-  const n     = metrics.length;
   const rings = [0.2, 0.4, 0.6, 0.8, 1.0];
+
+  $: n = metrics.length;
 
   let highlighted = null;
 

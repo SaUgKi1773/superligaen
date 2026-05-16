@@ -4,6 +4,19 @@ hide_toc: true
 title: Player Intelligence
 ---
 
+<script>
+  import TeamRadar from '../../components/TeamRadar.svelte';
+
+  const playerMetrics = [
+    { key: 'goals_per90_pct',   label: 'Attack Score'     },
+    { key: 'assists_per90_pct', label: 'Creativity Score' },
+    { key: 'pass_pct',          label: 'Passing Score'    },
+    { key: 'shot_conv_pct',     label: 'Efficiency Score' },
+    { key: 'rating_pct',        label: 'Overall Score'    },
+    { key: 'defense_pct',       label: 'Defensive Score'  },
+  ];
+</script>
+
 ```sql seasons
 select season from (
   select season, max(is_current_season::int) as is_current
@@ -124,7 +137,8 @@ with base as (
         sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0)                 as goals_per90,
         sum(assists)      * 90.0 / nullif(sum(minutes_played), 0)                 as assists_per90,
         100.0 * sum(passes_accurate) / nullif(sum(passes_total),  0)              as pass_accuracy,
-        100.0 * sum(goals_scored)    / nullif(sum(shots_total),   0)              as shot_conversion
+        100.0 * sum(goals_scored)    / nullif(sum(shots_total),   0)              as shot_conversion,
+        sum(tackles)      * 90.0 / nullif(sum(minutes_played), 0)                 as tackles_per90
     from superligaen.mart_player_facts
     where season = '${inputs.season.value}'
       and result in ('Win', 'Draw', 'Loss')
@@ -140,7 +154,8 @@ ranked as (
         round(percent_rank() over (order by goals_per90)     * 100) as goals_per90_pct,
         round(percent_rank() over (order by assists_per90)   * 100) as assists_per90_pct,
         round(percent_rank() over (order by pass_accuracy)   * 100) as pass_pct,
-        round(percent_rank() over (order by shot_conversion) * 100) as shot_conv_pct
+        round(percent_rank() over (order by shot_conversion) * 100) as shot_conv_pct,
+        round(percent_rank() over (order by tackles_per90)   * 100) as defense_pct
     from base
 )
 select * from ranked where player_name = '${inputs.player.value}'
@@ -266,63 +281,61 @@ select * from ranked where player_name = '${inputs.player.value}'
 *Percentile rank among all players with 450+ minutes in {inputs.season.value}. 100 = best in the league.*
 
 {#each league_context as lc}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 mb-6 max-w-2xl">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-center">
 
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Goals</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-amber-400" style="width:{lc.goals_pct}%"></div>
+  <div class="flex flex-col gap-3">
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Goals / 90</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-amber-400" style="width:{lc.goals_per90_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.goals_per90_pct}</div>
     </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.goals_pct}</div>
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Assists / 90</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-sky-400" style="width:{lc.assists_per90_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.assists_per90_pct}</div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Pass Accuracy</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-indigo-500" style="width:{lc.pass_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.pass_pct}</div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Shot Conversion</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-orange-400" style="width:{lc.shot_conv_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.shot_conv_pct}</div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Avg Rating</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-violet-500" style="width:{lc.rating_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.rating_pct}</div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Defensive</div>
+      <div class="flex-1 bg-gray-100 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-teal-500" style="width:{lc.defense_pct}%"></div>
+      </div>
+      <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.defense_pct}</div>
+    </div>
+
   </div>
 
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Assists</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-blue-400" style="width:{lc.assists_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.assists_pct}</div>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Goals / 90</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-green-500" style="width:{lc.goals_per90_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.goals_per90_pct}</div>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Assists / 90</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-sky-400" style="width:{lc.assists_per90_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.assists_per90_pct}</div>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Avg Rating</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-violet-500" style="width:{lc.rating_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.rating_pct}</div>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Pass Accuracy</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-indigo-500" style="width:{lc.pass_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.pass_pct}</div>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <div class="text-xs text-gray-500 w-28 shrink-0 text-right">Shot Conversion</div>
-    <div class="flex-1 bg-gray-100 rounded-full h-2.5">
-      <div class="h-2.5 rounded-full bg-orange-400" style="width:{lc.shot_conv_pct}%"></div>
-    </div>
-    <div class="text-xs font-bold text-gray-700 w-8 shrink-0 text-right">{lc.shot_conv_pct}</div>
-  </div>
+  <TeamRadar data={league_context} metrics={playerMetrics} />
 
 </div>
 {/each}
