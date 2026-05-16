@@ -16,13 +16,13 @@ select season from (
 ```sql teams
 select distinct team_name, team_logo
 from superligaen.mart_match_facts
-where season = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
 order by team_name
 ```
 
 {#key seasons[0]?.season}
-<Dropdown data={seasons} name=season value=season label=season defaultValue={seasons[0]?.season} />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} multiple=true />
 {/key}
 
 {#key teams[0]?.team_name}
@@ -43,7 +43,7 @@ select
     sum(goals_conceded)::int                             as ga,
     (sum(goals_scored) - sum(goals_conceded))::int       as gd
 from superligaen.mart_match_facts
-where season = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by team_name, team_logo
@@ -59,7 +59,7 @@ with team_curr as (
         round(100.0 * sum(goals_scored)        / nullif(sum(total_shots), 0), 1) as shot_conv,
         round(sum(yellow_cards)::double        / count(distinct match_id), 2)  as yc_per_match
     from superligaen.mart_match_facts
-    where season   = '${inputs.season.value}'
+    where season in ${inputs.season.value}
       and team_name = '${inputs.team.value}'
       and result in ('Win', 'Draw', 'Loss')
 ),
@@ -68,11 +68,10 @@ league_avg as (
         round(sum(goals_scored)::double       / count(distinct match_id), 2)  as league_goals_per_match,
         round(sum(goals_conceded)::double      / count(distinct match_id), 2)  as league_conceded_per_match,
         round(100.0 * sum(passes_accurate)     / nullif(sum(total_passes), 0), 1) as league_pass_accuracy,
-        round(sum(possession_pct)::double      / count(distinct match_id), 1)  as league_avg_possession,
         round(100.0 * sum(goals_scored)        / nullif(sum(total_shots), 0), 1) as league_shot_conv,
         round(sum(yellow_cards)::double        / count(distinct match_id), 2)  as league_yc_per_match
     from superligaen.mart_match_facts
-    where season = '${inputs.season.value}'
+    where season in ${inputs.season.value}
       and result in ('Win', 'Draw', 'Loss')
 )
 select tc.*, la.* from team_curr tc cross join league_avg la
@@ -85,7 +84,7 @@ select
     cumulative_points,
     case when team_name = '${inputs.team.value}' then 'a_selected' else 'b_others' end as highlight
 from superligaen.mart_match_facts
-where season = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
 order by case when team_name = '${inputs.team.value}' then 0 else 1 end, team_name, match_round_number
 ```
@@ -105,7 +104,7 @@ select
     total_shots,
     yellow_cards
 from superligaen.mart_match_facts
-where season   = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 order by match_date desc
@@ -119,7 +118,7 @@ select
     goals_conceded as ga,
     opponent_team_name as opponent
 from superligaen.mart_match_facts
-where season   = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 order by match_date desc
@@ -139,7 +138,7 @@ select
     round(100.0 * sum(passes_accurate) / nullif(sum(total_passes), 0), 1)            as pass_accuracy,
     round(sum(possession_pct)::double  / count(distinct match_id), 1)                as avg_possession
 from superligaen.mart_match_facts
-where season   = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by team_side
@@ -159,7 +158,7 @@ select
     round(sum(goals_scored) * 90.0 / nullif(sum(minutes_played), 0), 2)              as goals_per90,
     sum(minutes_played)::int                                                          as minutes
 from superligaen.mart_player_facts
-where season   = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by player_name, player_photo, player_position
@@ -176,7 +175,7 @@ select
     sum(goals_conceded)::int                                                           as ga,
     round(sum(goals_scored)::double    / count(distinct match_id), 2)                 as goals_per_match
 from superligaen.mart_match_facts
-where season   = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and team_name = '${inputs.team.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by match_round_type
@@ -217,7 +216,7 @@ order by matches desc
         <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold shadow-md {m.result === 'Win' ? 'bg-green-500 text-white' : m.result === 'Draw' ? 'bg-yellow-400 text-gray-800' : 'bg-red-500 text-white'}">
           {m.result === 'Win' ? 'W' : m.result === 'Draw' ? 'D' : 'L'}
         </div>
-        <div class="absolute bottom-11 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+        <div class="absolute bottom-11 left-0 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
           {m.gf}–{m.ga} vs {m.opponent}
         </div>
       </div>
@@ -240,7 +239,7 @@ order by matches desc
     <BigValue data={team_kpis} value=pass_accuracy title="Pass Accuracy %" comparison=league_pass_accuracy comparisonTitle="league avg" comparisonDelta=true fmt='0.0"%"' />
   </div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={team_kpis} value=avg_possession title="Avg Possession %" comparison=league_avg_possession comparisonTitle="league avg" comparisonDelta=true fmt='0.0"%"' />
+    <BigValue data={team_kpis} value=avg_possession title="Avg Possession %" fmt='0.0"%"' />
   </div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
     <BigValue data={team_kpis} value=shot_conv title="Shot Conversion %" comparison=league_shot_conv comparisonTitle="league avg" comparisonDelta=true fmt='0.0"%"' />
