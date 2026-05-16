@@ -4,6 +4,10 @@ hide_toc: true
 title: League Intelligence
 ---
 
+<script>
+  import TeamRadar from '../../components/TeamRadar.svelte';
+</script>
+
 ```sql seasons
 select season from (
   select season, max(is_current_season::int) as is_current, 0 as sort_key
@@ -162,6 +166,49 @@ where season = '${inputs.season.value}'
   and '${inputs.season.value}' != 'All Seasons'
   and result in ('Win', 'Draw', 'Loss')
 order by max(cumulative_points) over (partition by team_name) desc, team_name, match_round_number
+```
+
+```sql radar_teams
+select distinct team_name
+from superligaen.mart_match_facts
+where ('${inputs.season.value}' = 'All Seasons' or season = '${inputs.season.value}')
+  and result in ('Win', 'Draw', 'Loss')
+order by team_name
+```
+
+```sql radar_data
+with all_teams as (
+    select
+        team_name,
+        sum(goals_scored)::double       / count(distinct match_id)                         as goals_per_match,
+        sum(goals_conceded)::double     / count(distinct match_id)                         as conceded_per_match,
+        100.0 * sum(passes_accurate)    / nullif(sum(total_passes), 0)                     as pass_accuracy,
+        sum(possession_pct)::double     / count(distinct match_id)                         as avg_possession,
+        100.0 * sum(goals_scored)       / nullif(sum(total_shots), 0)                      as shot_conv,
+        100.0 * sum(case when result='Win' then 1 else 0 end) / count(distinct match_id)  as win_rate
+    from superligaen.mart_match_facts
+    where ('${inputs.season.value}' = 'All Seasons' or season = '${inputs.season.value}')
+      and result in ('Win', 'Draw', 'Loss')
+    group by team_name
+),
+ranked as (
+    select
+        team_name,
+        goals_per_match,
+        conceded_per_match,
+        pass_accuracy,
+        avg_possession,
+        shot_conv,
+        win_rate,
+        round(percent_rank() over (order by goals_per_match)         * 100) as attack_pct,
+        round(percent_rank() over (order by conceded_per_match desc)  * 100) as defense_pct,
+        round(percent_rank() over (order by pass_accuracy)           * 100) as passing_pct,
+        round(percent_rank() over (order by avg_possession)          * 100) as possession_pct,
+        round(percent_rank() over (order by shot_conv)               * 100) as efficiency_pct,
+        round(percent_rank() over (order by win_rate)                * 100) as wins_pct
+    from all_teams
+)
+select * from ranked where team_name = '${inputs.radar_team.value}'
 ```
 
 ```sql historical_trends
@@ -393,6 +440,22 @@ order by min(possession_pct)
     sort=true
 />
 
+</div>
+
+---
+
+## Team Radar
+
+*Percentile rank vs all teams in the selected season. 100 = best in the league.*
+
+{#key radar_teams[0]?.team_name}
+<Dropdown data={radar_teams} name=radar_team value=team_name label=team_name defaultValue={radar_teams[0]?.team_name} />
+{/key}
+
+<div class="flex justify-center">
+  <div style="max-width:560px;width:100%;">
+    <TeamRadar data={radar_data} />
+  </div>
 </div>
 
 ---
