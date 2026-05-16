@@ -155,6 +155,8 @@ where g.rn = 1 and a.rn = 1 and r.rn = 1
 select
     team_name,
     team_short_name,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_name       || '</span></div>' as team_col,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_short_name || '</span></div>' as team_col_mobile,
     count(distinct match_id)                          as mp,
     sum(points_earned)                                as pts,
     sum(goals_scored) - sum(goals_conceded)           as gd,
@@ -164,7 +166,7 @@ from superligaen.mart_match_facts
 where ('${inputs.season.value}' = 'All Seasons' or season = '${inputs.season.value}')
   and team_name in ${inputs.team.value}
   and result in ('Win', 'Draw', 'Loss')
-group by team_name, team_short_name, standings_type
+group by team_name, team_short_name, team_logo, standings_type
 order by
     case standings_type
         when 'Championship Group' then 1
@@ -396,7 +398,7 @@ select * from ranked where team_name in ${inputs.team.value} order by team_name
 
 <div class="block md:hidden">
 <DataTable data={current_standings} rows=20>
-    <Column id=team_short_name title="Team"  />
+    <Column id=team_col_mobile title="Team"  contentType=html />
     <Column id=round_group     title="Group" />
     <Column id=mp              title="MP"   align=center />
     <Column id=pts             title="Pts"  align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
@@ -404,7 +406,7 @@ select * from ranked where team_name in ${inputs.team.value} order by team_name
 </div>
 <div class="hidden md:block">
 <DataTable data={current_standings} rows=20>
-    <Column id=team_name   title="Team"  />
+    <Column id=team_col    title="Team"  contentType=html />
     <Column id=round_group title="Group" />
     <Column id=mp          title="MP"   align=center />
     <Column id=pts         title="Pts"  align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
