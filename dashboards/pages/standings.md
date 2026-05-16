@@ -52,12 +52,15 @@ select
     )                as rank,
     team_name        as team,
     team_short_name  as team_short,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_name || '</span></div>'       as team_col,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_short_name || '</span></div>' as team_col_mobile,
     gp, w, d, l, gf, ga, gd, pts,
     standings_type   as round_group
 from (
     select
         team_name,
         team_short_name,
+        max(team_logo)                                    as team_logo,
         standings_type,
         count(distinct match_id)                          as gp,
         sum(case when result = 'Win'  then 1 else 0 end) as w,
@@ -77,13 +80,13 @@ order by standings_type, pts desc, gd desc, gf desc
 ```
 
 ```sql championship
-select rank, team, team_short, gp, w, d, l, gf, ga, gd, pts
+select rank, team, team_short, team_col, team_col_mobile, gp, w, d, l, gf, ga, gd, pts
 from ${standings}
 where round_group = 'Championship Group'
 ```
 
 ```sql relegation
-select rank, team, team_short, gp, w, d, l, gf, ga, gd, pts
+select rank, team, team_short, team_col, team_col_mobile, gp, w, d, l, gf, ga, gd, pts
 from ${standings}
 where round_group = 'Relegation Group'
 ```
@@ -91,11 +94,15 @@ where round_group = 'Relegation Group'
 ```sql regular
 select
     row_number() over (order by pts desc, gd desc, gf desc) as rank,
-    team_name as team, team_short_name as team_short, gp, w, d, l, gf, ga, gd, pts
+    team_name as team, team_short_name as team_short,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_name || '</span></div>'       as team_col,
+    '<div style="display:flex;align-items:center;gap:6px;"><img src="' || team_logo || '" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display=''none''"><span>' || team_short_name || '</span></div>' as team_col_mobile,
+    gp, w, d, l, gf, ga, gd, pts
 from (
     select
         team_name,
         team_short_name,
+        max(team_logo)                                    as team_logo,
         count(distinct match_id)                          as gp,
         sum(case when result = 'Win'  then 1 else 0 end) as w,
         sum(case when result = 'Draw' then 1 else 0 end) as d,
@@ -142,7 +149,7 @@ order by
 <div class="standings-table block md:hidden">
 <DataTable data={championship} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team_short title="Team" />
+    <Column id=team_col_mobile title="Team" contentType=html width="max-content" />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
@@ -154,7 +161,7 @@ order by
 <div class="standings-table hidden md:block">
 <DataTable data={championship} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team title="Team" wrap=true   />
+    <Column id=team_col title="Team" contentType=html />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
@@ -175,7 +182,7 @@ order by
 <div class="standings-table block md:hidden">
 <DataTable data={relegation} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team_short title="Team" />
+    <Column id=team_col_mobile title="Team" contentType=html width="max-content" />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
@@ -187,7 +194,7 @@ order by
 <div class="standings-table hidden md:block">
 <DataTable data={relegation} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team title="Team" wrap=true   />
+    <Column id=team_col title="Team" contentType=html />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
@@ -208,7 +215,7 @@ order by
 <div class="standings-table block md:hidden">
 <DataTable data={regular} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team_short title="Team" />
+    <Column id=team_col_mobile title="Team" contentType=html width="max-content" />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
@@ -220,7 +227,7 @@ order by
 <div class="standings-table hidden md:block">
 <DataTable data={regular} rows=20>
     <Column id=rank title="#"   align=center />
-    <Column id=team title="Team" wrap=true   />
+    <Column id=team_col title="Team" contentType=html />
     <Column id=gp   title="GP"  align=center />
     <Column id=w    title="W"   align=center />
     <Column id=d    title="D"   align=center />
