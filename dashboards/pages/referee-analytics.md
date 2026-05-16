@@ -15,7 +15,7 @@ select season from (
 ```
 
 {#key seasons[0]?.season}
-<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} multiple=true />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
 {/key}
 
 ```sql season_kpis
@@ -26,7 +26,7 @@ select
     round(sum(fouls)::double         / count(distinct match_id), 1)                          as league_avg_fouls,
     round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)   as league_severity_index
 from superligaen.mart_match_facts
-where season in ${inputs.season.value}
+where season = '${inputs.season.value}'
   and result in ('Win', 'Draw', 'Loss')
 ```
 
@@ -48,7 +48,7 @@ select
     round(100.0 * sum(case when team_side='Home' then yellow_cards else 0 end)
           / nullif(sum(yellow_cards), 0), 1)                                                             as home_yc_pct
 from superligaen.mart_match_facts
-where season in ${inputs.season.value}
+where season = '${inputs.season.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by referee_name
 order by matches_managed desc
@@ -255,7 +255,7 @@ select
     count(distinct match_id)::int as matches
 from superligaen.mart_match_facts
 where referee_name = '${inputs.referee.value}'
-  and season in ${inputs.season.value}
+  and season = '${inputs.season.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by team_name
 order by matches desc
@@ -272,7 +272,7 @@ select
     sum(fouls)::int                     as fouls
 from superligaen.mart_match_facts
 where referee_name = '${inputs.referee.value}'
-  and season in ${inputs.season.value}
+  and season = '${inputs.season.value}'
   and result in ('Win', 'Draw', 'Loss')
 group by match_date, match_round_name, match_name, score
 order by match_date desc

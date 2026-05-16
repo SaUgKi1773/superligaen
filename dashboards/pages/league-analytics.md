@@ -21,7 +21,7 @@ order by sort_key, is_current desc, season desc
 ```
 
 {#key seasons[0]?.season}
-<Dropdown data={seasons} name=season value=season label=season defaultValue={seasons[0]?.season} />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
 {/key}
 
 ```sql league_kpis
