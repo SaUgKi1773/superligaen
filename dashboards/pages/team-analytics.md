@@ -90,7 +90,7 @@ select
     match_round_number  as round,
     team_name,
     cumulative_points,
-    case when team_name = '${inputs.team.value}' then 'a_selected' else 'b_others' end as highlight
+    case when team_name = '${inputs.team.value}' then '${inputs.team.value}' else 'Other Teams' end as highlight
 from superligaen.mart_match_facts
 where season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
@@ -382,8 +382,9 @@ end
 
 ---
 
-## Points Race vs The Field
+## Points Race
 
+<div style="pointer-events: none;">
 <LineChart
     data={all_teams_points}
     x=round
@@ -391,11 +392,12 @@ end
     series=highlight
     xAxisTitle="Round"
     yAxisTitle="Points"
-    title="{inputs.team.value} vs All Teams — {inputs.season.value}"
+    title=""
     colorPalette={['#3b82f6','#e2e8f0']}
     legend=false
     chartAreaHeight=280
 />
+</div>
 
 ---
 
