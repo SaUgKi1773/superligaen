@@ -14,35 +14,19 @@ select season from (
 ```
 
 {#key seasons[0]?.season}
-<Dropdown data={seasons} name=season value=season label=season defaultValue={seasons[0]?.season} />
+<Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} multiple=true />
 {/key}
 
 ```sql season_kpis
-with curr as (
-    select
-        count(distinct referee_name)                                                              as total_referees,
-        round(sum(yellow_cards)::double  / count(distinct match_id), 2)                          as league_avg_yellows,
-        round(sum(red_cards)::double     / count(distinct match_id), 3)                          as league_avg_reds,
-        round(sum(fouls)::double         / count(distinct match_id), 1)                          as league_avg_fouls,
-        round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)   as league_severity_index
-    from superligaen.mart_match_facts
-    where season = '${inputs.season.value}'
-      and result in ('Win', 'Draw', 'Loss')
-),
-prev as (
-    select
-        round(sum(yellow_cards)::double  / count(distinct match_id), 2)                          as prev_league_avg_yellows,
-        round(sum(red_cards)::double     / count(distinct match_id), 3)                          as prev_league_avg_reds,
-        round(sum(fouls)::double         / count(distinct match_id), 1)                          as prev_league_avg_fouls,
-        round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)   as prev_league_severity_index
-    from superligaen.mart_match_facts
-    where season = (
-        select max(season) from superligaen.mart_match_facts
-        where season < '${inputs.season.value}' and result in ('Win', 'Draw', 'Loss')
-    )
-      and result in ('Win', 'Draw', 'Loss')
-)
-select curr.*, prev.* from curr cross join prev
+select
+    count(distinct referee_name)                                                              as total_referees,
+    round(sum(yellow_cards)::double  / count(distinct match_id), 2)                          as league_avg_yellows,
+    round(sum(red_cards)::double     / count(distinct match_id), 3)                          as league_avg_reds,
+    round(sum(fouls)::double         / count(distinct match_id), 1)                          as league_avg_fouls,
+    round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)   as league_severity_index
+from superligaen.mart_match_facts
+where season in ${inputs.season.value}
+  and result in ('Win', 'Draw', 'Loss')
 ```
 
 ```sql season_stats
@@ -63,7 +47,7 @@ select
     round(100.0 * sum(case when team_side='Home' then yellow_cards else 0 end)
           / nullif(sum(yellow_cards), 0), 1)                                                             as home_yc_pct
 from superligaen.mart_match_facts
-where season = '${inputs.season.value}'
+where season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
 group by referee_name
 order by matches_managed desc
@@ -101,13 +85,13 @@ order by season asc
     <BigValue data={season_kpis} value=total_referees title="Active Referees" />
   </div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={season_kpis} value=league_avg_yellows title="Avg YC / Match" comparison=prev_league_avg_yellows comparisonTitle="vs last season" comparisonDelta=true downIsGood=true />
+    <BigValue data={season_kpis} value=league_avg_yellows title="Avg YC / Match" />
   </div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={season_kpis} value=league_avg_reds title="Avg RC / Match" comparison=prev_league_avg_reds comparisonTitle="vs last season" comparisonDelta=true downIsGood=true />
+    <BigValue data={season_kpis} value=league_avg_reds title="Avg RC / Match" />
   </div>
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={season_kpis} value=league_avg_fouls title="Avg Fouls / Match" comparison=prev_league_avg_fouls comparisonTitle="vs last season" comparisonDelta=true downIsGood=true />
+    <BigValue data={season_kpis} value=league_avg_fouls title="Avg Fouls / Match" />
   </div>
 </div>
 
@@ -298,7 +282,7 @@ select
     count(distinct match_id)::int as matches
 from superligaen.mart_match_facts
 where referee_name = '${inputs.referee.value}'
-  and season = '${inputs.season.value}'
+  and season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
 group by team_name
 order by matches desc
@@ -315,7 +299,7 @@ select
     sum(fouls)::int                     as fouls
 from superligaen.mart_match_facts
 where referee_name = '${inputs.referee.value}'
-  and season = '${inputs.season.value}'
+  and season in ${inputs.season.value}
   and result in ('Win', 'Draw', 'Loss')
 group by match_date, match_round_name, match_name, score
 order by match_date desc
