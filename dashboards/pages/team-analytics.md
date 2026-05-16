@@ -112,9 +112,11 @@ select
         when 'Loss' then '<span style="background:#ef4444;color:white;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:700;">L</span>'
     end as result_badge,
     points_earned       as pts,
-    possession_pct      as possession,
+    possession_pct                                                        as possession,
     shots_on_goal,
     total_shots,
+    round(100.0 * passes_accurate / nullif(total_passes, 0), 1)           as pass_accuracy,
+    round(100.0 * goals_scored    / nullif(total_shots,   0), 1)           as shot_conv,
     yellow_cards
 from superligaen.mart_match_facts
 where season in ${inputs.season.value}
@@ -408,6 +410,7 @@ end
     title="W/D/L Split"
     colorPalette={['#22c55e','#eab308','#ef4444']}
     type=grouped
+    sort=false
 />
 
 <BarChart
@@ -417,6 +420,7 @@ end
     title="Goals Scored vs Conceded per Match"
     colorPalette={['#22c55e','#ef4444']}
     type=grouped
+    sort=false
 />
 
 <BarChart
@@ -425,6 +429,7 @@ end
     y=avg_possession
     title="Avg Possession %"
     colorPalette={['#8b5cf6']}
+    sort=false
 />
 
 <BarChart
@@ -433,6 +438,7 @@ end
     y=pass_accuracy
     title="Pass Accuracy %"
     colorPalette={['#0ea5e9']}
+    sort=false
 />
 
 </div>
@@ -450,7 +456,7 @@ end
 </div>
 
 <div class="hidden md:block">
-<DataTable data={squad_contributors} rows=25>
+<DataTable data={squad_contributors} rows=10>
     <Column id=player_photo             title=""               contentType=html />
     <Column id=player_name              title="Player"         />
     <Column id=player_position          title="Pos"            />
@@ -553,12 +559,105 @@ end
 </DataTable>
 </div>
 <div class="block md:hidden">
-<DataTable data={squad_contributors} rows=20>
-    <Column id=player_name        title="Player"  />
-    <Column id=goals              title="G"       align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
-    <Column id=assists            title="A"       align=center />
-    <Column id=goal_contributions title="G+A"    align=center contentType=colorscale colorPalette={['white','#22c55e']} />
-    <Column id=avg_rating         title="Rating"  />
+<DataTable data={squad_contributors} rows=10>
+    <Column id=player_name              title="Player"         />
+    <Column id=player_position          title="Pos"            />
+    <Column id=matches                  title="MP"             align=center />
+    <Column id=minutes                  title="Minutes"        align=center />
+    <Column id=avg_rating               title="Rating"         contentType=colorscale colorPalette={['white','#8b5cf6']} />
+    {#if inputs.attack_cols.value?.includes('goals')}
+    <Column id=goals                    title="Goals"          align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('assists')}
+    <Column id=assists                  title="Assists"        align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('goal_contributions')}
+    <Column id=goal_contributions       title="G+A"            align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('contributions_per90')}
+    <Column id=contributions_per90      title="G+A/90"         contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('goals_per90')}
+    <Column id=goals_per90              title="G/90"           contentType=colorscale colorPalette={['white','#f59e0b']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('shots')}
+    <Column id=shots                    title="Shots"          align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('shots_per90')}
+    <Column id=shots_per90              title="Shots/90"       contentType=colorscale colorPalette={['white','#f59e0b']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('shots_on_target')}
+    <Column id=shots_on_target          title="SoT"            align=center contentType=colorscale colorPalette={['white','#f59e0b']} />
+    {/if}
+    {#if inputs.attack_cols.value?.includes('big_chances_created')}
+    <Column id=big_chances_created      title="Big Chances"    align=center contentType=colorscale colorPalette={['white','#ef4444']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('key_passes')}
+    <Column id=key_passes               title="Key Passes"     align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('key_passes_per90')}
+    <Column id=key_passes_per90         title="Key Passes/90"  contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('chances_created')}
+    <Column id=chances_created          title="Chances"        align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('chances_created_per90')}
+    <Column id=chances_created_per90    title="Chances/90"     contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('passes')}
+    <Column id=passes                   title="Passes"         align=center contentType=colorscale colorPalette={['white','#6366f1']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('pass_accuracy')}
+    <Column id=pass_accuracy            title="Pass Acc %"     fmt='0.0"%"' contentType=colorscale colorPalette={['white','#6366f1']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('crosses')}
+    <Column id=crosses                  title="Crosses"        align=center contentType=colorscale colorPalette={['white','#6366f1']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('crosses_per90')}
+    <Column id=crosses_per90            title="Crosses/90"     contentType=colorscale colorPalette={['white','#6366f1']} />
+    {/if}
+    {#if inputs.passing_cols.value?.includes('cross_accuracy')}
+    <Column id=cross_accuracy           title="Cross Acc %"    fmt='0.0"%"' contentType=colorscale colorPalette={['white','#6366f1']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('tackles')}
+    <Column id=tackles                  title="Tackles"        align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('tackles_per90')}
+    <Column id=tackles_per90            title="Tackles/90"     contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('interceptions')}
+    <Column id=interceptions            title="Interceptions"  align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('interceptions_per90')}
+    <Column id=interceptions_per90      title="Interceptions/90" contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('clearances')}
+    <Column id=clearances               title="Clearances"     align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.defense_cols.value?.includes('aerials_won')}
+    <Column id=aerials_won              title="Aerials Won"    align=center contentType=colorscale colorPalette={['white','#22c55e']} />
+    {/if}
+    {#if inputs.dribbling_cols.value?.includes('dribbles')}
+    <Column id=dribbles                 title="Dribbles"       align=center contentType=colorscale colorPalette={['white','#f97316']} />
+    {/if}
+    {#if inputs.dribbling_cols.value?.includes('dribbles_per90')}
+    <Column id=dribbles_per90           title="Dribbles/90"    contentType=colorscale colorPalette={['white','#f97316']} />
+    {/if}
+    {#if inputs.dribbling_cols.value?.includes('dribble_success_pct')}
+    <Column id=dribble_success_pct      title="Dribble Success %" fmt='0.0"%"' contentType=colorscale colorPalette={['white','#f97316']} />
+    {/if}
+    {#if inputs.discipline_cols.value?.includes('yellow_cards')}
+    <Column id=yellow_cards             title="YC"             align=center contentType=colorscale colorPalette={['white','#eab308']} />
+    {/if}
+    {#if inputs.discipline_cols.value?.includes('red_cards')}
+    <Column id=red_cards                title="RC"             align=center contentType=colorscale colorPalette={['white','#ef4444']} />
+    {/if}
+    {#if inputs.discipline_cols.value?.includes('fouls')}
+    <Column id=fouls                    title="Fouls"          align=center contentType=colorscale colorPalette={['white','#f97316']} />
+    {/if}
+    {#if inputs.discipline_cols.value?.includes('fouls_drawn')}
+    <Column id=fouls_drawn              title="Fouls Drawn"    align=center contentType=colorscale colorPalette={['white','#3b82f6']} />
+    {/if}
 </DataTable>
 </div>
 
@@ -605,17 +704,25 @@ end
     <Column id=ga            title="GA"         align=center />
     <Column id=result_badge  title="Result"     contentType=html align=center />
     <Column id=pts           title="Pts"        align=center />
-    <Column id=possession    title="Poss %"     fmt='0.0"%"' />
+    <Column id=possession    title="Poss %"     fmt='0.0"%"' align=center />
+    <Column id=pass_accuracy title="Pass Acc %" fmt='0.0"%"' align=center />
     <Column id=shots_on_goal title="SoG"        align=center />
+    <Column id=shot_conv     title="Shot Conv %" fmt='0.0"%"' align=center />
     <Column id=yellow_cards  title="YC"         align=center />
 </DataTable>
 </div>
 <div class="block md:hidden">
 <DataTable data={match_results} rows=20>
-    <Column id=match_date   title="Date"     />
-    <Column id=opponent     title="Opponent" />
-    <Column id=gf           title="GF"      align=center />
-    <Column id=ga           title="GA"      align=center />
-    <Column id=result_badge title="Result"  contentType=html align=center />
+    <Column id=match_date    title="Date"       />
+    <Column id=opponent      title="Opponent"   />
+    <Column id=gf            title="GF"         align=center />
+    <Column id=ga            title="GA"         align=center />
+    <Column id=result_badge  title="Result"     contentType=html align=center />
+    <Column id=pts           title="Pts"        align=center />
+    <Column id=possession    title="Poss %"     fmt='0.0"%"' align=center />
+    <Column id=pass_accuracy title="Pass Acc %" fmt='0.0"%"' align=center />
+    <Column id=shots_on_goal title="SoG"        align=center />
+    <Column id=shot_conv     title="Shot Conv %" fmt='0.0"%"' align=center />
+    <Column id=yellow_cards  title="YC"         align=center />
 </DataTable>
 </div>
