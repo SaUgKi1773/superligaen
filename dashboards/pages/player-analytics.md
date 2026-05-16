@@ -102,7 +102,7 @@ order by match_round_number
 
 ```sql player_match_log
 select
-    strftime(match_date, '%d %b')                as match_date,
+    strftime(match_date, '%Y-%m-%d')              as match_date,
     match_round_name                              as round,
     opponent_team_name                            as opponent,
     team_side                                     as home_away,
