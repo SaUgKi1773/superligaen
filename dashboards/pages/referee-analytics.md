@@ -9,6 +9,7 @@ select season from (
   select season, max(is_current_season::int) as is_current
   from superligaen.mart_match_facts
   where result in ('Win', 'Draw', 'Loss')
+    and season >= '2020/21'
   group by season
 ) order by is_current desc, season desc
 ```
@@ -63,15 +64,39 @@ select * from ${season_stats} order by avg_yellows_per_match asc limit 3
 
 ```sql historical_trends
 select
-    season,
+    substr(season, 3, 2) || '/' || right(season, 2)                                              as season,
     round(sum(yellow_cards)::double  / count(distinct match_id), 2)                               as yc_per_match,
     round(sum(red_cards)::double     / count(distinct match_id), 4)                               as rc_per_match,
     round(sum(fouls)::double         / count(distinct match_id), 1)                               as fouls_per_match,
     round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)         as severity_index
 from superligaen.mart_match_facts
 where result in ('Win', 'Draw', 'Loss')
+  and season >= '2020/21'
 group by season
 order by season asc
+```
+
+```sql referee_trends
+select
+    substr(season, 3, 2) || '/' || right(season, 2)                                              as season,
+    round(sum(yellow_cards)::double  / count(distinct match_id), 2)                               as yc_per_match,
+    round(sum(red_cards)::double     / count(distinct match_id), 4)                               as rc_per_match,
+    round(sum(fouls)::double         / count(distinct match_id), 1)                               as fouls_per_match,
+    round((sum(yellow_cards) + sum(red_cards) * 3)::double / count(distinct match_id), 2)         as severity_index
+from superligaen.mart_match_facts
+where result in ('Win', 'Draw', 'Loss')
+  and season >= '2020/21'
+  and referee_name = '${inputs.referee.value}'
+group by season
+order by season asc
+```
+
+```sql combined_trends
+select season, yc_per_match, rc_per_match, fouls_per_match, severity_index, 'League Avg' as source
+from ${historical_trends}
+union all
+select season, yc_per_match, rc_per_match, fouls_per_match, severity_index, '${inputs.referee.value}' as source
+from ${referee_trends}
 ```
 
 ---
@@ -220,58 +245,6 @@ order by season asc
 
 ---
 
-## Historical Discipline Trends
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
-<LineChart
-    data={historical_trends}
-    x=season
-    y=yc_per_match
-    title="Yellow Cards per Match — All Seasons"
-    xAxisTitle="Season"
-    yAxisTitle="YC / Match"
-    lineColor="#eab308"
-    sort=false
-/>
-
-<LineChart
-    data={historical_trends}
-    x=season
-    y=fouls_per_match
-    title="Fouls per Match — All Seasons"
-    xAxisTitle="Season"
-    yAxisTitle="Fouls / Match"
-    lineColor="#f97316"
-    sort=false
-/>
-
-<LineChart
-    data={historical_trends}
-    x=season
-    y=severity_index
-    title="Card Severity Index — All Seasons"
-    xAxisTitle="Season"
-    yAxisTitle="Severity Index"
-    lineColor="#dc2626"
-    sort=false
-/>
-
-<LineChart
-    data={historical_trends}
-    x=season
-    y=rc_per_match
-    title="Red Cards per Match — All Seasons"
-    xAxisTitle="Season"
-    yAxisTitle="RC / Match"
-    lineColor="#ef4444"
-    sort=false
-/>
-
-</div>
-
----
-
 ## Referee Deep Dive
 
 <Dropdown data={season_stats} name=referee value=referee_name label=referee_name />
@@ -366,7 +339,7 @@ where referee_name = '${inputs.referee.value}'
 
 ### Match Log
 
-<DataTable data={referee_match_log} rows=10>
+<DataTable data={referee_match_log} rows=5>
     <Column id=match_date    title="Date"   />
     <Column id=round         title="Round"  />
     <Column id=match_name    title="Match"  wrap=true />
@@ -377,5 +350,61 @@ where referee_name = '${inputs.referee.value}'
 </DataTable>
 
 </div>
+
+</div>
+
+---
+
+## Historical Discipline Trends
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+<LineChart
+    data={combined_trends}
+    x=season
+    y=yc_per_match
+    series=source
+    title="Yellow Cards per Match — All Seasons"
+    xAxisTitle="Season"
+    yAxisTitle="YC / Match"
+    colorPalette={['#d1d5db','#eab308']}
+    sort=false
+/>
+
+<LineChart
+    data={combined_trends}
+    x=season
+    y=fouls_per_match
+    series=source
+    title="Fouls per Match — All Seasons"
+    xAxisTitle="Season"
+    yAxisTitle="Fouls / Match"
+    colorPalette={['#d1d5db','#f97316']}
+    sort=false
+/>
+
+<LineChart
+    data={combined_trends}
+    x=season
+    y=severity_index
+    series=source
+    title="Card Severity Index — All Seasons"
+    xAxisTitle="Season"
+    yAxisTitle="Severity Index"
+    colorPalette={['#d1d5db','#dc2626']}
+    sort=false
+/>
+
+<LineChart
+    data={combined_trends}
+    x=season
+    y=rc_per_match
+    series=source
+    title="Red Cards per Match — All Seasons"
+    xAxisTitle="Season"
+    yAxisTitle="RC / Match"
+    colorPalette={['#d1d5db','#ef4444']}
+    sort=false
+/>
 
 </div>
