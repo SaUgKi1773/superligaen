@@ -66,12 +66,24 @@ with current_stats as (
       and result in ('Win', 'Draw', 'Loss')
 ),
 current_ranking as (
-    select row_number() over (order by sum(points_earned) desc, sum(goals_scored - goals_conceded) desc, sum(goals_scored) desc) as rank,
+    select row_number() over (order by group_order, total_pts desc, total_gd desc, total_gf desc) as rank,
            team_name
-    from superligaen.mart_match_facts
-    where season = '${inputs.season.value}'
-      and result in ('Win', 'Draw', 'Loss')
-    group by team_name
+    from (
+        select
+            team_name,
+            sum(points_earned)                          as total_pts,
+            sum(goals_scored - goals_conceded)          as total_gd,
+            sum(goals_scored)                           as total_gf,
+            case max(standings_type)
+                when 'Championship Group' then 1
+                when 'Relegation Group'   then 2
+                else                           3
+            end                                         as group_order
+        from superligaen.mart_match_facts
+        where season = '${inputs.season.value}'
+          and result in ('Win', 'Draw', 'Loss')
+        group by team_name
+    )
 ),
 prev_season as (
     select max(season) as season
@@ -94,13 +106,25 @@ prev_stats as (
       and match_round_number <= (select max_round from current_stats)
 ),
 prev_ranking as (
-    select row_number() over (order by sum(points_earned) desc, sum(goals_scored - goals_conceded) desc, sum(goals_scored) desc) as rank,
+    select row_number() over (order by group_order, total_pts desc, total_gd desc, total_gf desc) as rank,
            team_name
-    from superligaen.mart_match_facts
-    where season = (select season from prev_season)
-      and result in ('Win', 'Draw', 'Loss')
-      and match_round_number <= (select max_round from current_stats)
-    group by team_name
+    from (
+        select
+            team_name,
+            sum(points_earned)                          as total_pts,
+            sum(goals_scored - goals_conceded)          as total_gd,
+            sum(goals_scored)                           as total_gf,
+            case max(standings_type)
+                when 'Championship Group' then 1
+                when 'Relegation Group'   then 2
+                else                           3
+            end                                         as group_order
+        from superligaen.mart_match_facts
+        where season = (select season from prev_season)
+          and result in ('Win', 'Draw', 'Loss')
+          and match_round_number <= (select max_round from current_stats)
+        group by team_name
+    )
 )
 select
     cs.*,
@@ -112,7 +136,8 @@ select
     round(cs.pass_accuracy      / nullif(ps.prev_pass_accuracy,      0), 2)                 as pass_ratio,
     round(cs.shot_conv          / nullif(ps.prev_shot_conv,          0), 2)                 as shot_conv_ratio,
     round(cs.yc_per_match       / nullif(ps.prev_yc_per_match,       0), 2)                 as yc_ratio,
-    round(cs.win_rate           / nullif(ps.prev_win_rate,           0), 2)                 as win_rate_ratio
+    round(cs.win_rate           / nullif(ps.prev_win_rate,           0), 2)                 as win_rate_ratio,
+    round(cs.avg_possession     / nullif(ps.prev_avg_possession,     0), 2)                 as possession_ratio
 from current_stats cs
 left join current_ranking cr on cr.team_name = '${inputs.team.value}'
 left join prev_stats ps on true
@@ -386,7 +411,7 @@ end
     <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.conceded_per_match}</div>
     <div class="flex justify-between items-center mt-3">
       <span class="text-xs text-gray-400">Prev season: {k.prev_conceded_per_match ?? '—'}</span>
-      <span class="text-sm font-bold {k.conceded_ratio <= 1 ? 'text-green-600' : 'text-red-500'}">{k.conceded_ratio <= 1 ? '▲' : '▼'}</span>
+      <span class="text-sm font-bold {k.conceded_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.conceded_ratio >= 1 ? '▲' : '▼'}</span>
     </div>
   </div>
 
@@ -401,7 +426,11 @@ end
 
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
     <div class="text-xs text-gray-500 text-center mb-2">Avg Possession %</div>
-    <div class="text-3xl font-black text-center flex-1 flex items-center justify-center {k.avg_possession >= 55 ? 'text-green-600' : k.avg_possession < 45 ? 'text-red-500' : 'text-orange-400'}">{k.avg_possession}%</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.avg_possession}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_avg_possession != null ? k.prev_avg_possession + '%' : '—'}</span>
+      <span class="text-sm font-bold {k.possession_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.possession_ratio >= 1 ? '▲' : '▼'}</span>
+    </div>
   </div>
 
   <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
@@ -418,7 +447,7 @@ end
     <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.yc_per_match}</div>
     <div class="flex justify-between items-center mt-3">
       <span class="text-xs text-gray-400">Prev season: {k.prev_yc_per_match ?? '—'}</span>
-      <span class="text-sm font-bold {k.yc_ratio <= 1 ? 'text-green-600' : 'text-red-500'}">{k.yc_ratio <= 1 ? '▲' : '▼'}</span>
+      <span class="text-sm font-bold {k.yc_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.yc_ratio >= 1 ? '▲' : '▼'}</span>
     </div>
   </div>
 
