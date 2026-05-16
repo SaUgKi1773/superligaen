@@ -186,6 +186,54 @@ where ('${inputs.season.value}' = 'All Seasons' or season = '${inputs.season.val
 order by max(cumulative_points) over (partition by team_name) desc, team_name, match_round_number
 ```
 
+```sql team_season_stats
+select
+    team_name,
+    sum(goals_scored)::int                                                                              as goals_for,
+    sum(goals_conceded)::int                                                                            as goals_against,
+    round(100.0 * sum(goals_scored) / nullif(sum(total_shots), 0), 1)                                  as shot_conversion_pct,
+    round(100.0 * sum(goals_scored) / nullif(sum(shots_on_goal), 0), 1)                                as on_target_conversion_pct,
+    count(distinct match_id) filter (where goals_conceded = 0)::int                                    as clean_sheets,
+    round(sum(saves)::double / count(distinct match_id), 1)                                            as avg_saves,
+    round(sum(goals_conceded)::double / count(distinct match_id), 2)                                   as avg_goals_conceded,
+    round(sum(possession_pct)::double / count(distinct match_id), 1)                                   as avg_possession,
+    round(100.0 * sum(passes_accurate) / nullif(sum(total_passes), 0), 1)                              as avg_pass_accuracy,
+    round(sum(corner_kicks)::double / count(distinct match_id), 1)                                     as avg_corners,
+    round(sum(fouls)::double / count(distinct match_id), 1)                                            as avg_fouls,
+    round((sum(fouls) + sum(yellow_cards) * 5 + sum(red_cards) * 15)::double / count(distinct match_id), 1) as aggression_index,
+    sum(yellow_cards)::int                                                                              as yellow_cards,
+    sum(red_cards)::int                                                                                 as red_cards
+from superligaen.mart_match_facts
+where ('${inputs.season.value}' = 'All Seasons' or season = '${inputs.season.value}')
+  and team_name in ${inputs.team.value}
+  and result in ('Win', 'Draw', 'Loss')
+group by team_name
+```
+
+```sql attack_rankings
+select team_name, goals_for, shot_conversion_pct, on_target_conversion_pct
+from ${team_season_stats}
+order by goals_for desc
+```
+
+```sql defence_rankings
+select team_name, goals_against, clean_sheets, avg_saves, avg_goals_conceded
+from ${team_season_stats}
+order by clean_sheets desc
+```
+
+```sql possession_rankings
+select team_name, avg_possession, avg_pass_accuracy, avg_corners
+from ${team_season_stats}
+order by avg_possession desc
+```
+
+```sql discipline_rankings
+select team_name, yellow_cards, red_cards, avg_fouls, aggression_index
+from ${team_season_stats}
+order by aggression_index desc
+```
+
 ```sql radar_data
 with all_teams as (
     select
@@ -465,44 +513,129 @@ order by min(possession_pct)
 
 ## Team Rankings
 
+### Attack — Who's Scoring?
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
 <BarChart
-    data={team_landscape}
+    data={attack_rankings}
     x=team_name
     y=goals_for
     title="Goals Scored"
+    yAxisTitle="Goals"
     colorPalette={['#22c55e']}
     swapXY=true
     sort=true
 />
 
 <BarChart
-    data={team_landscape}
+    data={attack_rankings}
     x=team_name
-    y=goals_against
-    title="Goals Conceded"
-    colorPalette={['#ef4444']}
+    y=shot_conversion_pct
+    title="Shot Conversion %"
+    yAxisTitle="Conversion %"
+    colorPalette={['#f59e0b']}
     swapXY=true
     sort=true
 />
 
+</div>
+
+---
+
+### Defence — Who's Keeping Clean Sheets?
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
 <BarChart
-    data={team_landscape}
+    data={defence_rankings}
     x=team_name
     y=clean_sheets
     title="Clean Sheets"
+    yAxisTitle="Clean Sheets"
     colorPalette={['#14b8a6']}
     swapXY=true
     sort=true
 />
 
 <BarChart
-    data={team_landscape}
+    data={defence_rankings}
     x=team_name
-    y=pass_accuracy
-    title="Pass Accuracy %"
+    y=goals_against
+    title="Goals Conceded"
+    yAxisTitle="Goals Conceded"
+    colorPalette={['#ef4444']}
+    swapXY=true
+    sort=true
+/>
+
+</div>
+
+---
+
+### Possession & Passing
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+<BarChart
+    data={possession_rankings}
+    x=team_name
+    y=avg_possession
+    title="Average Possession %"
+    yAxisTitle="Possession %"
     colorPalette={['#8b5cf6']}
+    swapXY=true
+    sort=true
+/>
+
+<BarChart
+    data={possession_rankings}
+    x=team_name
+    y=avg_pass_accuracy
+    title="Average Pass Accuracy %"
+    yAxisTitle="Pass Accuracy %"
+    colorPalette={['#0ea5e9']}
+    swapXY=true
+    sort=true
+/>
+
+</div>
+
+---
+
+### Discipline
+
+<BarChart
+    data={discipline_rankings}
+    x=team_name
+    y=aggression_index
+    title="Aggression Index — Fouls + Cards Weighted"
+    yAxisTitle="Aggression Index"
+    colorPalette={['#f97316']}
+    swapXY=true
+    sort=true
+/>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 mb-6">
+
+<BarChart
+    data={discipline_rankings}
+    x=team_name
+    y=yellow_cards
+    title="Yellow Cards"
+    yAxisTitle="Yellow Cards"
+    colorPalette={['#eab308']}
+    swapXY=true
+    sort=true
+/>
+
+<BarChart
+    data={discipline_rankings}
+    x=team_name
+    y=red_cards
+    title="Red Cards"
+    yAxisTitle="Red Cards"
+    colorPalette={['#dc2626']}
     swapXY=true
     sort=true
 />
