@@ -417,7 +417,7 @@ order by min(possession_pct)
 
 *Where does each team sit on the attack vs defence spectrum? Teams to the right score more, teams lower down concede less. The bottom-right corner is where champions live.*
 
-*How does a team rank across six dimensions relative to the rest of the league? Each axis shows a percentile — 100 means best in the league for that metric. Click a team in the legend to isolate it.*
+*How does a team rank across six dimensions relative to the rest of the league? Each axis is a score from 0 to 100 — 100 means best in the league. Click a team in the legend to isolate it.*
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-end">
 

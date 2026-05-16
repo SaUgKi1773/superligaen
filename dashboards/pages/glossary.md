@@ -83,6 +83,21 @@ A reference for all metrics, abbreviations, and KPIs used across the dashboard.
 
 ---
 
+## Team Radar Scores
+
+Each score on the Team Radar chart is a **league percentile rank** for the selected season — 0 means bottom of the league for that dimension, 100 means top. All six scores are on the same 0–100 scale so different types of metrics can be compared fairly in a single chart. Defensive Score inverts the underlying metric so that conceding fewer goals always scores higher.
+
+<div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+  <div class="p-3"><div class="font-semibold text-sm">Attack Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for goals scored per match — how prolific a team is in front of goal relative to the rest of the league</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: Goals Scored ÷ Matches Played</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Passing Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for pass accuracy — how precisely a team moves the ball compared to league peers</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: (Accurate Passes ÷ Total Passes) × 100</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Efficiency Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for shot conversion — how well a team turns shots into goals relative to the league</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: (Goals ÷ Total Shots) × 100</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Win Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for win rate — overall match-winning ability relative to other teams in the season</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: (Wins ÷ Matches Played) × 100</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Defensive Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for defensive solidity — higher score means fewer goals conceded per match. The underlying metric is inverted so that conceding less always scores higher.</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: Goals Conceded ÷ Matches Played (ranked lowest-to-highest)</div></div>
+  <div class="p-3"><div class="font-semibold text-sm">Possession Score</div><div class="text-sm text-gray-500 mt-0.5">Percentile rank for average ball possession — how dominant a team is in controlling the game tempo</div><div class="text-xs text-gray-400 mt-0.5">Underlying metric: Average Possession % across all matches</div></div>
+</div>
+
+---
+
 ## Other
 
 <div class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">

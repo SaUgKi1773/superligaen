@@ -2,13 +2,15 @@
   export let data = [];
 
   const metrics = [
-    { key: 'attack_pct',      label: 'Attack',      valueKey: 'goals_per_match',      fmt: v => v != null ? v.toFixed(2) : '—' },
-    { key: 'passing_pct',     label: 'Passing',     valueKey: 'pass_accuracy',        fmt: v => v != null ? v.toFixed(1) + '%' : '—' },
-    { key: 'efficiency_pct',  label: 'Efficiency',  valueKey: 'shot_conv',            fmt: v => v != null ? v.toFixed(1) + '%' : '—' },
-    { key: 'wins_pct',        label: 'Win Rate',    valueKey: 'win_rate',             fmt: v => v != null ? v.toFixed(1) + '%' : '—' },
-    { key: 'defense_pct',     label: 'Defense',     valueKey: 'conceded_per_match',   fmt: v => v != null ? v.toFixed(2) : '—' },
-    { key: 'possession_pct',  label: 'Possession',  valueKey: 'avg_possession',       fmt: v => v != null ? v.toFixed(1) + '%' : '—' },
+    { key: 'attack_pct',      label: 'Attack Score'     },
+    { key: 'passing_pct',     label: 'Passing Score'    },
+    { key: 'efficiency_pct',  label: 'Efficiency Score' },
+    { key: 'wins_pct',        label: 'Win Score'        },
+    { key: 'defense_pct',     label: 'Defensive Score'  },
+    { key: 'possession_pct',  label: 'Possession Score' },
   ];
+
+  function fmtPct(v) { return v != null ? Math.round(v) : '—'; }
 
   const palette = [
     '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
@@ -91,7 +93,7 @@
         font-weight="700"
         fill="#111827"
         font-family="ui-sans-serif,system-ui,sans-serif"
-      >{m.fmt(labelRow[m.valueKey])}</text>
+      >{fmtPct(labelRow[m.key])}</text>
       {/if}
     {/each}
 
