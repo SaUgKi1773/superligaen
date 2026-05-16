@@ -43,11 +43,12 @@ with curr as (
     select
         count(distinct match_id)                                                                        as total_matches,
         sum(goals_scored)                                                                               as total_goals,
-        count(distinct team_name)                                                                       as total_teams,
         round(sum(goals_scored)::double / count(distinct match_id), 2)                                  as goals_per_match,
         round(100.0 * count(*) filter (where team_side='Home' and result='Win')
               / nullif(count(*) filter (where team_side='Home'), 0), 1)                                 as home_win_pct,
-        round(100.0 * count(*) filter (where result='Draw') / count(*), 1)                             as draw_pct,
+        round(100.0 * count(*) filter (where result='Draw') / count(*), 1)                              as draw_pct,
+        round(100.0 * sum(goals_scored) / nullif(sum(total_shots), 0), 1)                               as shot_conversion,
+        round(100.0 * sum(passes_accurate) / nullif(sum(total_passes), 0), 1)                           as pass_accuracy,
         round(sum(yellow_cards)::double / count(distinct match_id), 2)                                  as yc_per_match,
         round(100.0 * sum(goals_scored) / nullif(sum(big_chances_created), 0), 1)                      as big_chance_conv
     from superligaen.mart_match_facts
@@ -60,8 +61,11 @@ prev as (
         round(sum(goals_scored)::double / count(distinct match_id), 2)                                  as prev_goals_per_match,
         round(100.0 * count(*) filter (where team_side='Home' and result='Win')
               / nullif(count(*) filter (where team_side='Home'), 0), 1)                                 as prev_home_win_pct,
-        round(100.0 * count(*) filter (where result='Draw') / count(*), 1)                             as prev_draw_pct,
-        round(sum(yellow_cards)::double / count(distinct match_id), 2)                                  as prev_yc_per_match
+        round(100.0 * count(*) filter (where result='Draw') / count(*), 1)                              as prev_draw_pct,
+        round(100.0 * sum(goals_scored) / nullif(sum(total_shots), 0), 1)                               as prev_shot_conversion,
+        round(100.0 * sum(passes_accurate) / nullif(sum(total_passes), 0), 1)                           as prev_pass_accuracy,
+        round(sum(yellow_cards)::double / count(distinct match_id), 2)                                  as prev_yc_per_match,
+        round(100.0 * sum(goals_scored) / nullif(sum(big_chances_created), 0), 1)                      as prev_big_chance_conv
     from superligaen.mart_match_facts
     where season = (
         select max(season) from superligaen.mart_match_facts
@@ -72,7 +76,16 @@ prev as (
       and team_name in ${inputs.team.value}
       and result in ('Win', 'Draw', 'Loss')
 )
-select curr.*, prev.* from curr cross join prev
+select
+    curr.*,
+    prev.*,
+    round(curr.goals_per_match   / nullif(prev.prev_goals_per_match,   0), 2) as goals_ratio,
+    round(curr.home_win_pct      / nullif(prev.prev_home_win_pct,      0), 2) as home_win_ratio,
+    round(curr.shot_conversion   / nullif(prev.prev_shot_conversion,   0), 2) as shot_conv_ratio,
+    round(curr.pass_accuracy     / nullif(prev.prev_pass_accuracy,     0), 2) as pass_ratio,
+    round(curr.yc_per_match      / nullif(prev.prev_yc_per_match,      0), 2) as yc_ratio,
+    round(curr.big_chance_conv   / nullif(prev.prev_big_chance_conv,   0), 2) as big_chance_ratio
+from curr cross join prev
 ```
 
 ```sql season_awards
@@ -273,20 +286,81 @@ select * from ranked where team_name in ${inputs.team.value} order by team_name
 
 ## League Intelligence — {inputs.season.value}
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={league_kpis} value=total_goals title="Goals Scored" />
+{#each league_kpis as k}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Goals / Match</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.goals_per_match}</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_goals_per_match ?? '—'}</span>
+      {#if k.goals_ratio != null}<span class="text-sm font-bold {k.goals_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.goals_ratio >= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
   </div>
-  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={league_kpis} value=goals_per_match title="Goals / Match" comparison=prev_goals_per_match comparisonTitle="vs prev season" comparisonDelta=true />
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Home Win %</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.home_win_pct}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_home_win_pct != null ? k.prev_home_win_pct + '%' : '—'}</span>
+      {#if k.home_win_ratio != null}<span class="text-sm font-bold {k.home_win_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.home_win_ratio >= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
   </div>
-  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={league_kpis} value=home_win_pct title="Home Win %" comparison=prev_home_win_pct comparisonTitle="vs prev season" comparisonDelta=true fmt='0.0"%"' />
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Draw %</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.draw_pct}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_draw_pct != null ? k.prev_draw_pct + '%' : '—'}</span>
+    </div>
   </div>
-  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-center">
-    <BigValue data={league_kpis} value=yc_per_match title="YC / Match" comparison=prev_yc_per_match comparisonTitle="vs prev season" comparisonDelta=true downIsGood=true />
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Shot Conversion %</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.shot_conversion}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_shot_conversion != null ? k.prev_shot_conversion + '%' : '—'}</span>
+      {#if k.shot_conv_ratio != null}<span class="text-sm font-bold {k.shot_conv_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.shot_conv_ratio >= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
   </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Pass Accuracy %</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.pass_accuracy}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_pass_accuracy != null ? k.prev_pass_accuracy + '%' : '—'}</span>
+      {#if k.pass_ratio != null}<span class="text-sm font-bold {k.pass_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.pass_ratio >= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">YC / Match</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.yc_per_match}</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_yc_per_match ?? '—'}</span>
+      {#if k.yc_ratio != null}<span class="text-sm font-bold {k.yc_ratio <= 1 ? 'text-green-600' : 'text-red-500'}">{k.yc_ratio <= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Big Chance Conv %</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.big_chance_conv}%</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">Prev season: {k.prev_big_chance_conv != null ? k.prev_big_chance_conv + '%' : '—'}</span>
+      {#if k.big_chance_ratio != null}<span class="text-sm font-bold {k.big_chance_ratio >= 1 ? 'text-green-600' : 'text-red-500'}">{k.big_chance_ratio >= 1 ? '▲' : '▼'}</span>{/if}
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 flex flex-col">
+    <div class="text-xs text-gray-500 text-center mb-2">Total Goals</div>
+    <div class="text-3xl font-black text-center text-gray-900 flex-1 flex items-center justify-center">{k.total_goals}</div>
+    <div class="flex justify-between items-center mt-3">
+      <span class="text-xs text-gray-400">{k.total_matches} matches played</span>
+    </div>
+  </div>
+
 </div>
+{/each}
 
 ---
 
