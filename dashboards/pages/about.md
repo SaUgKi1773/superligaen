@@ -4,6 +4,10 @@ hide_toc: true
 title: About This Project
 ---
 
+<script>
+  import InstallGuide from '../../components/InstallGuide.svelte';
+</script>
+
 ## The Idea
 
 I am **Salih Ugur Kimilli**, a data engineer who loves turning raw data into insights. I wanted to build a real end-to-end data engineering project using only free, open-source tools — no vendor lock-in, no cloud bills. Around the same time, I had recently moved to Denmark and realised I knew very little about Danish football.
