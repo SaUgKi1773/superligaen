@@ -82,3 +82,4 @@ JOIN superligaen.gold.dim_appearance_type     at_dim ON at_dim.appearance_type_s
 WHERE f.player_sk > 0
   AND f.match_result_sk > 0
   AND m.match_round_number IS NOT NULL
+  AND d.season >= '2020/21'

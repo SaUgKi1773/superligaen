@@ -108,3 +108,4 @@ LEFT JOIN player_agg                         pa  ON pa.match_sk         = f.matc
                                                 AND pa.team_sk          = f.team_sk
 WHERE f.match_result_sk > 0
   AND m.match_round_number IS NOT NULL
+  AND d.season >= '2020/21'
