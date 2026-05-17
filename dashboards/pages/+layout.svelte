@@ -14,7 +14,7 @@
 
   onMount(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js');
+      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
     }
     inject();
     const script = document.createElement('script');
