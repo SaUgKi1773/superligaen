@@ -13,9 +13,6 @@
   });
 
   onMount(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
-    }
     inject();
     const script = document.createElement('script');
     script.defer = true;
