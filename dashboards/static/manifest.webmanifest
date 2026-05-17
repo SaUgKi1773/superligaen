@@ -1,6 +1,6 @@
 {
-  "name": "Superligaen Analytics",
-  "short_name": "Superligaen",
+  "name": "Superliga Analytics",
+  "short_name": "Superliga",
   "description": "Danish Premier Football League — standings, match results, player & team intelligence.",
   "start_url": "/",
   "display": "standalone",

@@ -22,7 +22,7 @@
   });
 </script>
 
-<EvidenceDefaultLayout {data} hideBreadcrumbs={true} neverShowQueries={true} hideMenu={true} title="🏠 Superliga Analytics">
+<EvidenceDefaultLayout {data} hideBreadcrumbs={true} neverShowQueries={true} hideMenu={true} title="Superliga Analytics" logo="/icon.svg">
   <slot slot="content" />
 </EvidenceDefaultLayout>
 
