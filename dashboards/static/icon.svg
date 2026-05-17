@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1D4ED8"/>
+  <!-- Football -->
+  <circle cx="256" cy="230" r="110" fill="white" stroke="#1D4ED8" stroke-width="6"/>
+  <!-- Pentagon patches -->
+  <polygon points="256,145 290,170 278,208 234,208 222,170" fill="#1D4ED8"/>
+  <polygon points="366,185 380,220 350,244 322,228 326,192" fill="#1D4ED8"/>
+  <polygon points="316,295 332,330 304,352 274,336 272,300" fill="#1D4ED8"/>
+  <polygon points="196,295 224,300 222,336 192,352 164,330" fill="#1D4ED8"/>
+  <polygon points="146,185 186,192 190,228 162,244 132,220" fill="#1D4ED8"/>
+  <!-- Analytics bar chart below -->
+  <rect x="148" y="380" width="30" height="64" rx="6" fill="white" opacity="0.9"/>
+  <rect x="196" y="360" width="30" height="84" rx="6" fill="white" opacity="0.9"/>
+  <rect x="244" y="340" width="30" height="104" rx="6" fill="white" opacity="0.9"/>
+  <rect x="292" y="355" width="30" height="89" rx="6" fill="white" opacity="0.9"/>
+  <rect x="340" y="370" width="30" height="74" rx="6" fill="white" opacity="0.9"/>
+</svg>
