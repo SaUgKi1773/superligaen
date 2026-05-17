@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40">
+  <!-- Exact app icon in a circle, scaled to 40px -->
+  <svg x="0" y="0" width="40" height="40" viewBox="0 0 512 512">
+    <circle cx="256" cy="256" r="256" fill="#1D4ED8"/>
+    <circle cx="256" cy="230" r="110" fill="white" stroke="#1D4ED8" stroke-width="6"/>
+    <polygon points="256,145 290,170 278,208 234,208 222,170" fill="#1D4ED8"/>
+    <polygon points="366,185 380,220 350,244 322,228 326,192" fill="#1D4ED8"/>
+    <polygon points="316,295 332,330 304,352 274,336 272,300" fill="#1D4ED8"/>
+    <polygon points="196,295 224,300 222,336 192,352 164,330" fill="#1D4ED8"/>
+    <polygon points="146,185 186,192 190,228 162,244 132,220" fill="#1D4ED8"/>
+    <rect x="148" y="380" width="30" height="64" rx="6" fill="white" opacity="0.9"/>
+    <rect x="196" y="360" width="30" height="84" rx="6" fill="white" opacity="0.9"/>
+    <rect x="244" y="340" width="30" height="104" rx="6" fill="white" opacity="0.9"/>
+    <rect x="292" y="355" width="30" height="89" rx="6" fill="white" opacity="0.9"/>
+    <rect x="340" y="370" width="30" height="74" rx="6" fill="white" opacity="0.9"/>
+  </svg>
+  <!-- Divider -->
+  <line x1="48" y1="5" x2="48" y2="35" stroke="#1D4ED8" stroke-width="1" opacity="0.2"/>
+  <!-- Text -->
+  <text x="56" y="16" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="12" fill="#1D4ED8" letter-spacing="-0.3">Superliga</text>
+  <text x="57" y="28" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="8.5" fill="#1D4ED8" opacity="0.7" letter-spacing="3">ANALYTICS</text>
+</svg>
