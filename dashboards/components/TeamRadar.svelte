@@ -1,5 +1,6 @@
 <script>
   export let data = [];
+  export let title = '';
   export let metrics = [
     { key: 'attack_pct',      label: 'Attack Score'     },
     { key: 'passing_pct',     label: 'Passing Score'    },
@@ -49,6 +50,9 @@
 </script>
 
 <div style="display:flex;flex-direction:column;align-items:center;">
+  {#if title}
+    <p style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 0.5rem 0;align-self:flex-start;">{title}</p>
+  {/if}
   <svg viewBox="0 0 {W} {H}" style="width:100%;max-width:560px;">
 
     <!-- Background rings -->

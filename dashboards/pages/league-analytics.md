@@ -543,7 +543,7 @@ select * from ranked where team_name in ${inputs.team.value} order by team_name
 
 <div>
 
-<TeamRadar data={radar_data} />
+<TeamRadar data={radar_data} title="Performance Radar" />
 
 </div>
 
