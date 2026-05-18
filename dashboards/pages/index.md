@@ -66,7 +66,7 @@ limit 1
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"><BigValue data={leader}  value=team_short_name  title="Current Leader"  /></div>
+  <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"><BigValue data={leader}  value=team_short_name  title="Season Leader"  /></div>
   <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"><BigValue data={kpis}    value=total_teams    title="Teams"           /></div>
   <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"><BigValue data={kpis}    value=total_matches  title="Matches Played"  /></div>
   <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center"><BigValue data={kpis}    value=total_goals    title="Goals Scored"    /></div>
