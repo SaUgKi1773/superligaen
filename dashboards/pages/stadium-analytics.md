@@ -77,7 +77,12 @@ where result in ('Win', 'Draw', 'Loss')
   and stadium_longitude between 7.5 and 15.5
   and season = '${inputs.season.value}'
 group by stadium_surface
-order by matches desc
+order by
+    case
+        when stadium_surface ilike '%grass%' or stadium_surface ilike '%natural%' then 1
+        when stadium_surface ilike '%artif%' or stadium_surface ilike '%turf%'    then 2
+        else 3
+    end
 ```
 
 ```sql fortress_ranking
@@ -209,62 +214,6 @@ from (
 
 ---
 
-## Surface Analysis: Grass vs Artificial Turf
-
-*How does the playing surface shape the way football is played?*
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
-<BarChart
-    data={surface_analysis}
-    x=stadium_surface
-    y=pass_accuracy
-    title="Pass Accuracy % by Surface"
-    yAxisTitle="Pass Accuracy %"
-    colorPalette={['#22c55e','#6366f1','#f59e0b']}
-/>
-
-<BarChart
-    data={surface_analysis}
-    x=stadium_surface
-    y=cross_accuracy
-    title="Cross Accuracy % by Surface"
-    yAxisTitle="Cross Accuracy %"
-    colorPalette={['#22c55e','#6366f1','#f59e0b']}
-/>
-
-<BarChart
-    data={surface_analysis}
-    x=stadium_surface
-    y=shot_conversion
-    title="Shot Conversion % by Surface"
-    yAxisTitle="Shot Conversion %"
-    colorPalette={['#22c55e','#6366f1','#f59e0b']}
-/>
-
-<BarChart
-    data={surface_analysis}
-    x=stadium_surface
-    y=fouls_per_match
-    title="Fouls per Match by Surface"
-    yAxisTitle="Fouls / Match"
-    colorPalette={['#22c55e','#6366f1','#f59e0b']}
-/>
-
-</div>
-
-<DataTable data={surface_analysis}>
-    <Column id=stadium_surface  title="Surface"          />
-    <Column id=matches          title="Matches"          align=center />
-    <Column id=pass_accuracy    title="Pass Acc %"       fmt='0.0"%"' contentType=colorscale colorPalette={['white','#8b5cf6']} />
-    <Column id=cross_accuracy   title="Cross Acc %"      fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
-    <Column id=shot_conversion  title="Shot Conv %"      fmt='0.0"%"' contentType=colorscale colorPalette={['white','#22c55e']} />
-    <Column id=fouls_per_match  title="Fouls/Match"       contentType=colorscale colorPalette={['white','#f97316']} />
-    <Column id=goals_per_match  title="Goals/Match"      fmt='0.00'   contentType=colorscale colorPalette={['white','#f59e0b']} />
-</DataTable>
-
----
-
 ## Full Fortress Ranking
 
 *Home record at each stadium. A true fortress keeps opponents at bay.*
@@ -308,3 +257,62 @@ from (
 </DataTable>
 </div>
 
+---
+
+## Surface Analysis: Grass vs Artificial Turf
+
+*How does the playing surface shape the way football is played?*
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+<BarChart
+    data={surface_analysis}
+    x=stadium_surface
+    y=pass_accuracy
+    title="Pass Accuracy % by Surface"
+    yAxisTitle="Pass Accuracy %"
+    colorPalette={['#22c55e','#6366f1','#f59e0b']}
+    sort=false
+/>
+
+<BarChart
+    data={surface_analysis}
+    x=stadium_surface
+    y=cross_accuracy
+    title="Cross Accuracy % by Surface"
+    yAxisTitle="Cross Accuracy %"
+    colorPalette={['#22c55e','#6366f1','#f59e0b']}
+    sort=false
+/>
+
+<BarChart
+    data={surface_analysis}
+    x=stadium_surface
+    y=shot_conversion
+    title="Shot Conversion % by Surface"
+    yAxisTitle="Shot Conversion %"
+    colorPalette={['#22c55e','#6366f1','#f59e0b']}
+    sort=false
+/>
+
+<BarChart
+    data={surface_analysis}
+    x=stadium_surface
+    y=fouls_per_match
+    title="Fouls per Match by Surface"
+    yAxisTitle="Fouls / Match"
+    colorPalette={['#22c55e','#6366f1','#f59e0b']}
+    sort=false
+/>
+
+</div>
+
+<DataTable data={surface_analysis}>
+    <Column id=stadium_surface  title="Surface"          />
+    <Column id=matches          title="Matches"          align=center />
+    <Column id=pass_accuracy    title="Pass Acc %"       fmt='0.0"%"' contentType=colorscale colorPalette={['white','#8b5cf6']} />
+    <Column id=cross_accuracy   title="Cross Acc %"      fmt='0.0"%"' contentType=colorscale colorPalette={['white','#3b82f6']} />
+    <Column id=shot_conversion  title="Shot Conv %"      fmt='0.0"%"' contentType=colorscale colorPalette={['white','#22c55e']} />
+    <Column id=fouls_per_match  title="Fouls/Match"       contentType=colorscale colorPalette={['white','#f97316']} />
+    <Column id=goals_per_match  title="Goals/Match"      fmt='0.00'   contentType=colorscale colorPalette={['white','#f59e0b']} />
+</DataTable>
