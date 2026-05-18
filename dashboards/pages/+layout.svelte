@@ -13,6 +13,7 @@
   import { onMount } from 'svelte';
   import { afterNavigate } from '$app/navigation';
   import { inject } from '@vercel/analytics';
+  import InstallBanner from '../components/InstallBanner.svelte';
 
   export let data;
 
@@ -33,6 +34,8 @@
 <EvidenceDefaultLayout {data} hideBreadcrumbs={true} neverShowQueries={true} hideMenu={true} logo="/header-logo.svg">
   <slot slot="content" />
 </EvidenceDefaultLayout>
+
+<InstallBanner />
 
 <style>
   :global(header img[alt="Home"]) {
