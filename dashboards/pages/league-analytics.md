@@ -23,18 +23,21 @@ order by is_current desc, season desc
 ```
 
 ```sql teams
-select distinct team_name
-from superligaen.mart_match_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-order by team_name
+select team_name from (
+  select 'All' as team_name, 0 as ord
+  union all
+  select distinct team_name, 1 as ord
+  from superligaen.mart_match_facts
+  where season = '${inputs.season.value}'
+    and result in ('Win', 'Draw', 'Loss')
+) order by ord, team_name
 ```
 
 {#key seasons[0]?.season}
 <Dropdown data={seasons} name=season value=season label=season order="season desc" defaultValue={seasons[0]?.season} />
 {/key}
 
-<Dropdown data={teams} name=team value=team_name label=team_name multiple=true selectAllByDefault=true />
+<Dropdown data={teams} name=team value=team_name label=team_name multiple=true defaultValue={['All']} />
 
 ```sql league_kpis
 with curr as (
@@ -52,7 +55,7 @@ with curr as (
         round(sum(shots_on_goal)::double / count(distinct match_id), 1)                                as sot_per_match
     from superligaen.mart_match_facts
     where season = '${inputs.season.value}'
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
 ),
 prev as (
@@ -71,7 +74,7 @@ prev as (
         where season < '${inputs.season.value}'
           and result in ('Win','Draw','Loss')
     )
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
 )
 select
@@ -96,7 +99,7 @@ with ranked as (
         row_number() over (order by sum(goals_scored) desc) as rn
     from superligaen.mart_player_facts
     where season = '${inputs.season.value}'
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
     group by player_name, player_photo, team_name
     having sum(goals_scored) > 0
@@ -112,7 +115,7 @@ with ranked as (
         row_number() over (order by sum(assists) desc) as rn
     from superligaen.mart_player_facts
     where season = '${inputs.season.value}'
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
     group by player_name, player_photo, team_name
     having sum(assists) > 0
@@ -129,7 +132,7 @@ with ranked as (
         row_number() over (order by avg(rating) desc) as rn
     from superligaen.mart_player_facts
     where season = '${inputs.season.value}'
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
       and rating is not null
       and rating > 0
@@ -152,7 +155,7 @@ select
     standings_type                                    as round_group
 from superligaen.mart_match_facts
 where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
+  and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
   and result in ('Win', 'Draw', 'Loss')
 group by team_name, team_short_name, team_logo, standings_type
 order by
@@ -177,7 +180,7 @@ select
     round(100.0 * sum(passes_accurate) / nullif(sum(total_passes), 0), 1)                   as pass_accuracy
 from superligaen.mart_match_facts
 where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
+  and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
   and result in ('Win', 'Draw', 'Loss')
 group by team_name, team_logo
 order by team_name
@@ -204,7 +207,7 @@ from (
 select match_round_number as round, team_name, cumulative_points, cumulative_gd, cumulative_gf
 from superligaen.mart_match_facts
 where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
+  and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
   and result in ('Win', 'Draw', 'Loss')
 order by max(cumulative_points) over (partition by team_name) desc, team_name, match_round_number
 ```
@@ -228,7 +231,7 @@ select
     sum(red_cards)::int                                                                                 as red_cards
 from superligaen.mart_match_facts
 where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
+  and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
   and result in ('Win', 'Draw', 'Loss')
 group by team_name
 ```
@@ -289,7 +292,7 @@ ranked as (
         round(percent_rank() over (order by win_rate)                * 100) as wins_pct
     from all_teams
 )
-select * from ranked where team_name in ${inputs.team.value} order by team_name
+select * from ranked where ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value}) order by team_name
 ```
 
 ---

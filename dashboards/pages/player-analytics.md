@@ -27,29 +27,35 @@ select season from (
 ```
 
 ```sql teams
-select distinct team_name
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and result in ('Win', 'Draw', 'Loss')
-order by team_name
+select team_name from (
+  select 'All' as team_name, 0 as ord
+  union all
+  select distinct team_name, 1 as ord
+  from superligaen.mart_player_facts
+  where season = '${inputs.season.value}'
+    and result in ('Win', 'Draw', 'Loss')
+) order by ord, team_name
 ```
 
 ```sql positions
-select distinct player_position
-from superligaen.mart_player_facts
-where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
-  and result in ('Win', 'Draw', 'Loss')
-  and player_position is not null
-order by player_position
+select player_position from (
+  select 'All' as player_position, 0 as ord
+  union all
+  select distinct player_position, 1 as ord
+  from superligaen.mart_player_facts
+  where season = '${inputs.season.value}'
+    and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
+    and result in ('Win', 'Draw', 'Loss')
+    and player_position is not null
+) order by ord, player_position
 ```
 
 ```sql players_in_team
 select distinct player_name
 from superligaen.mart_player_facts
 where season = '${inputs.season.value}'
-  and team_name in ${inputs.team.value}
-  and player_position in ${inputs.position.value}
+  and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
+  and ('All' in ${inputs.position.value} OR player_position in ${inputs.position.value})
   and result in ('Win', 'Draw', 'Loss')
 order by player_name
 ```
@@ -72,7 +78,7 @@ with base as (
         sum(passes_accurate)                            as passes
     from superligaen.mart_player_facts
     where season = '${inputs.season.value}'
-      and team_name in ${inputs.team.value}
+      and ('All' in ${inputs.team.value} OR team_name in ${inputs.team.value})
       and result in ('Win', 'Draw', 'Loss')
     group by player_name, player_photo, player_position
     having count(distinct match_id) >= 3
@@ -107,7 +113,7 @@ end
 {/key}
 
 {#key teams[0]?.team_name}
-<Dropdown data={teams} name=team value=team_name label=team_name multiple=true defaultValue={teams.map(t => t.team_name)} />
+<Dropdown data={teams} name=team value=team_name label=team_name multiple=true defaultValue={['All']} />
 {/key}
 
 ```sql player_profile
@@ -239,7 +245,7 @@ select * from ranked where player_name = '${inputs.player.value}'
 ## Player Deep Dive
 
 {#key positions.map(p => p.player_position).join(',')}
-<Dropdown data={positions} name=position value=player_position label=player_position multiple=true defaultValue={positions.map(p => p.player_position)} />
+<Dropdown data={positions} name=position value=player_position label=player_position multiple=true defaultValue={['All']} />
 {/key}
 
 {#key players_in_team[0]?.player_name}
