@@ -17,6 +17,10 @@ SELECT
     p.player_photo,
     p.player_position,
     p.player_detailed_position,
+    dpos.position_name,
+    dpos.position_short_code,
+    dpos.position_group,
+    df.formation,
     t.team_name,
     t.team_short_name,
     t.team_logo,
@@ -79,6 +83,8 @@ JOIN superligaen.gold.dim_team_side           ts   ON ts.team_side_sk     = f.te
 JOIN superligaen.gold.dim_referee             ref  ON ref.referee_sk      = f.referee_sk
 JOIN superligaen.gold.dim_stadium             st   ON st.stadium_sk       = f.stadium_sk
 JOIN superligaen.gold.dim_appearance_type     at_dim ON at_dim.appearance_type_sk = f.appearance_type_sk
+JOIN superligaen.gold.dim_formation           df     ON df.formation_sk           = f.formation_sk
+JOIN superligaen.gold.dim_position            dpos   ON dpos.position_sk          = f.position_sk
 WHERE f.player_sk > 0
   AND f.match_result_sk > 0
   AND m.match_round_number IS NOT NULL

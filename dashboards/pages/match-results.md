@@ -4,6 +4,10 @@ hide_toc: true
 title: Match Results
 ---
 
+<script>
+  import MatchLineup from '../../components/MatchLineup.svelte';
+</script>
+
 ```sql seasons
 select season from (
   select season, max(is_current_season::int) as is_current
@@ -324,3 +328,65 @@ where match_name            = split_part('${inputs.match.value}', '|', 1)
   </div>
 
 </div>
+
+---
+
+## Lineup
+
+```sql lineup
+select
+    player_name,
+    player_photo,
+    team_name,
+    team_logo,
+    team_side,
+    position_group,
+    position_name,
+    position_short_code,
+    formation,
+    minutes_played,
+    goals_scored,
+    assists,
+    shots_total,
+    shots_on_target,
+    key_passes,
+    big_chances_created,
+    dribbles_completed,
+    tackles,
+    interceptions,
+    clearances,
+    aerials_won,
+    blocks,
+    fouls_committed,
+    saves,
+    yellow_cards,
+    red_cards,
+    round(rating, 2) as rating
+from superligaen.mart_player_facts
+where match_name                 = split_part('${inputs.match.value}', '|', 1)
+  and cast(match_date as varchar) = split_part('${inputs.match.value}', '|', 2)
+  and result in ('Win', 'Draw', 'Loss')
+  and appearance_type = 'Starter'
+order by team_side desc, position_group, position_name
+```
+
+```sql subs
+select
+    player_name,
+    player_photo,
+    team_name,
+    team_side,
+    position_group,
+    position_name,
+    position_short_code,
+    formation,
+    round(rating, 2) as rating
+from superligaen.mart_player_facts
+where match_name                 = split_part('${inputs.match.value}', '|', 1)
+  and cast(match_date as varchar) = split_part('${inputs.match.value}', '|', 2)
+  and result in ('Win', 'Draw', 'Loss')
+  and appearance_type = 'Substitute'
+order by team_side desc, position_group, position_name
+```
+
+<MatchLineup {lineup} {subs} home_team={mc[0]?.home_team} away_team={mc[0]?.away_team} />
