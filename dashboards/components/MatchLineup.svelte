@@ -286,7 +286,7 @@
 
 <!-- Substitutes -->
 {#if homeSubs.length > 0 || awaySubs.length > 0}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;font-size:12px;">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-xs">
   <div>
     <div style="font-weight:700;color:#374151;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">🔄 {home_team} Subs</div>
     {#each homeSubs as p}
